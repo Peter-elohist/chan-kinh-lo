@@ -101,7 +101,7 @@
       </header>
       <div class="stats"><div><b>${pc}<small>/${ls.length}</small></b><span>Bài thông quan</span></div><div><b>${full}</b><span>Viên mãn</span></div><div><b>${rp}<small>/${rt.length}</small></b><span>Rễ phụ</span></div></div>
       ${contCard()}
-      <div class="home-tree"><svg id="tree" viewBox="${DESKTOP.matches ? '-150 0 690 740' : '0 0 390 740'}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cây Gốc Lẽ Thật: 5 tầng EA"></svg>
+      <div class="home-tree"><svg id="tree" viewBox="${DESKTOP.matches ? '-90 0 570 740' : '0 0 390 740'}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cây Gốc Lẽ Thật: 5 tầng EA"></svg>
         <div class="legend"><span><i class="dot d-full"></i>100 điểm</span><span><i class="dot d-pass"></i>Thông quan</span><span><i class="dot d-open"></i>Chưa đạt</span><span><i class="dot d-none"></i>Chưa có ghi chú</span></div></div>
       ${ladder()}
       <footer class="foot">${soundLine()}${saveLine()}<p class="note">Rễ lớn là bài EA, chia 5 tầng. Rễ nhỏ là ghi chú liên quan trong Brain. Chạm vào ấn tầng để mở.</p></footer>
@@ -119,10 +119,10 @@
     const svg = $('#tree'); if (!svg) return;
     let h = `<defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity=".4"/></linearGradient>
       <linearGradient id="pkFar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EFECE3" stop-opacity=".09"/><stop offset="1" stop-color="#EFECE3" stop-opacity=".01"/></linearGradient>
-      <linearGradient id="pkNear" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0A0A09" stop-opacity=".9"/><stop offset="1" stop-color="#EFECE3" stop-opacity=".05"/></linearGradient>
+      <linearGradient id="pkNear" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A1916" stop-opacity=".9"/><stop offset="1" stop-color="#EFECE3" stop-opacity=".05"/></linearGradient>
       <radialGradient id="mist"><stop offset="0" stop-color="#fff" stop-opacity=".2"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
       ${peaks()}<ellipse cx="195" cy="96" rx="230" ry="24" fill="url(#mist)"/><line x1="-240" y1="96" x2="630" y2="96" stroke="#EFECE3" stroke-opacity=".22" stroke-dasharray="1 7"/>
-      <path class="root-core lit" d="M195 30 L195 96" stroke="#fff" stroke-width="6"/><text x="${DESKTOP.matches ? 520 : 374}" y="88" fill="#8A877F" font-size="9" text-anchor="end" letter-spacing="3">MẶT ĐẤT</text>`;
+      <path class="root-core lit" d="M195 30 L195 96" stroke="#fff" stroke-width="6"/><text x="${DESKTOP.matches ? 470 : 374}" y="88" fill="#8A877F" font-size="9" text-anchor="end" letter-spacing="3">MẶT ĐẤT</text>`;
     PATHS.forEach((d, i) => { const done = tierDone(i + 1); h += `<path class="root-halo" d="${d}" stroke-width="${12 - i}"/><path class="root-core ${done ? 'lit' : ''}" data-i="${i}" d="${d}" stroke="url(#fade)" stroke-width="${3.4 - i * 0.26}"/>`; });
     svg.innerHTML = h;
     const cores = [...svg.querySelectorAll('.root-core[data-i]')]; let ex = '';
@@ -132,14 +132,14 @@
       for (let k = 0; k < 8; k++) { const s = p.getPointAtLength(L * (0.15 + 0.1 * k)); const dir = r() < 0.5 ? -1 : 1, len = 24 + r() * 52; ex += `<path class="hair" d="M${s.x.toFixed(1)} ${s.y.toFixed(1)} q${(dir * len * 0.5).toFixed(1)} ${(len * 0.3).toFixed(1)} ${(dir * len).toFixed(1)} ${len.toFixed(1)}" stroke-opacity=".13" stroke-width=".7"/>`; }
       for (let j = 1; j <= 10; j++) {
         const id = n + '.' + j, pt = p.getPointAtLength(L * (0.1 + 0.072 * (j - 1))), l = D.lessons[id];
-        if (!l) { ex += `<circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="2.3" fill="#0A0A09" stroke="#8A877F" stroke-width=".8" stroke-dasharray="1.5 1.5"/>`; continue; }
+        if (!l) { ex += `<circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="2.3" fill="#1A1916" stroke="#8A877F" stroke-width=".8" stroke-dasharray="1.5 1.5"/>`; continue; }
         const st = status(id), rr = rnd(j * 13 + n);
         l.roots.forEach(t => { const ang = (rr() - 0.5) * 2.2 + (pt.x < 195 ? 2.6 : 0.5), len = 12 + rr() * 22, ok = (rbest(t) || 0) >= PASS;
           ex += `<path class="hair ${ok ? 'lit' : ''}" d="M${pt.x.toFixed(1)} ${pt.y.toFixed(1)} q${(Math.cos(ang) * len * 0.6).toFixed(1)} ${(Math.sin(ang) * len * 0.2 + len * 0.3).toFixed(1)} ${(Math.cos(ang) * len).toFixed(1)} ${(Math.abs(Math.sin(ang)) * len + 6).toFixed(1)}" stroke-opacity="${ok ? 0.95 : 0.3}" stroke-width="${ok ? 1.1 : 0.6}"/>`; });
         const c = `cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}"`;
         if (st === 'full') ex += `<circle class="pulse" ${c} r="10" fill="none" stroke="#fff" stroke-opacity=".7"/><circle class="lit" ${c} r="4.8" fill="#fff"/>`;
         else if (st === 'pass') ex += `<circle class="lit" ${c} r="4.2" fill="#EFECE3"/>`;
-        else ex += `<circle ${c} r="3.6" fill="#0A0A09" stroke="#EFECE3" stroke-width="1.1"/>`;
+        else ex += `<circle ${c} r="3.6" fill="#1A1916" stroke="#EFECE3" stroke-width="1.1"/>`;
       }
       const e = p.getPointAtLength(L), t = D.tiers[i], ls = tierLessons(n), pc = ls.filter(l => passed(l.id)).length;
       const ax = e.x < 120 ? e.x - 32 : e.x > 270 ? e.x + 32 : e.x, an = e.x < 120 ? 'start' : e.x > 270 ? 'end' : 'middle';
@@ -147,11 +147,11 @@
       ex += `<g class="med" data-tier="${n}" style="transform-box:view-box;transform-origin:${e.x}px ${e.y}px" tabindex="0" role="button" aria-label="Tầng ${n}, ${esc(t.rank)}, ${pc} trên ${ls.length} bài">
         <path id="${ringId}" d="M${e.x - rr2} ${e.y} a${rr2} ${rr2} 0 1 1 ${rr2 * 2} 0 a${rr2} ${rr2} 0 1 1 ${-rr2 * 2} 0" fill="none"/>
         <g class="spin ${n % 2 ? '' : 'rev'}" style="transform-box:view-box;transform-origin:${e.x}px ${e.y}px"><text font-size="7.2" fill="#EFECE3" fill-opacity="${done ? 0.9 : 0.4}" font-family="'Ma Shan Zheng', serif" letter-spacing="1.6"><textPath href="#${ringId}">${esc(tierVerse(n).slice(0, 40))}</textPath></text></g>
-        <circle class="medring ${done ? 'lit' : ''}" cx="${e.x}" cy="${e.y}" r="29" fill="#0A0A09" stroke="#EFECE3" stroke-opacity="${done ? 1 : 0.55}" stroke-width="1.2"/>
+        <circle class="medring ${done ? 'lit' : ''}" cx="${e.x}" cy="${e.y}" r="29" fill="#1A1916" stroke="#EFECE3" stroke-opacity="${done ? 1 : 0.55}" stroke-width="1.2"/>
         <circle cx="${e.x}" cy="${e.y}" r="24" fill="none" stroke="#EFECE3" stroke-opacity=".2"/>
-        <text x="${e.x}" y="${e.y + 10}" text-anchor="middle" font-size="28" fill="#fff" font-family="'Ma Shan Zheng', serif" class="${done ? 'lit' : ''}">${t.g}</text>
-        <text class="lbl" x="${ax}" y="${e.y + 58}" text-anchor="${an}" font-size="14.5" fill="#EFECE3" stroke-width="3.5">${esc(t.rank)}</text>
-        <text class="sub" x="${ax}" y="${e.y + 73}" text-anchor="${an}" font-size="9.4" fill="#8F8C84" stroke-width="3" letter-spacing="1.6">TẦNG ${n} · ${ls.length ? pc + '/' + ls.length : 'CHƯA CÓ BÀI'}</text></g>`;
+        <text x="${e.x}" y="${e.y + 9}" text-anchor="middle" font-size="25" fill="#fff" font-family="'Ma Shan Zheng', serif" class="${done ? 'lit' : ''}">${t.g}</text>
+        <text class="lbl" x="${ax}" y="${e.y + 54}" text-anchor="${an}" font-size="12.5" fill="#E4E0D6" stroke-width="2.4">${esc(t.rank)}</text>
+        <text class="sub" x="${ax}" y="${e.y + 67}" text-anchor="${an}" font-size="7.8" fill="#8F8B82" stroke-width="2" letter-spacing="1.4">TẦNG ${n} · ${ls.length ? pc + '/' + ls.length : 'CHƯA CÓ BÀI'}</text></g>`;
     });
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.innerHTML = ex; svg.appendChild(g);
     if (!RM) {

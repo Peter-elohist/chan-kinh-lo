@@ -1,5 +1,10 @@
 # Nhật ký phiên bản
 
+## v0.3.1 · 2026-10-14
+
+- Nền chuyển từ đen tuyền sang than ấm (#1A1916) có quầng sáng nhẹ phía trên, đỡ nặng mắt; chữ giấy bớt chói (#E4E0D6).
+- Giảm cỡ chữ toàn bộ: tiêu đề cảnh giới, tiêu đề bài, số liệu, nhãn trên cây (bỏ viền đen dày quanh chữ).
+
 ## v0.3.0 · 2026-10-14
 
 - Trang đầu thiết kế lại: cảnh giới hiện tại và khoảng cách tới cảnh giới kế tiếp, ba chỉ số, thẻ "Tiếp tục tu luyện" dẫn thẳng tới bài nên học, thang cảnh giới có ý nghĩa từng bậc, núi xa trên mặt đất. MacBook: hai cột, cây cố định bên phải.
