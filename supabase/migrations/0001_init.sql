@@ -17,8 +17,8 @@ create index if not exists attempts_user_ref_idx on public.attempts (user_id, ki
 
 alter table public.attempts enable row level security;
 
-create policy "attempts: read own"   on public.attempts for select using (auth.uid() = user_id);
-create policy "attempts: insert own" on public.attempts for insert with check (auth.uid() = user_id);
+create policy "attempts: read own"   on public.attempts for select to authenticated using ((select auth.uid()) = user_id);
+create policy "attempts: insert own" on public.attempts for insert to authenticated with check ((select auth.uid()) = user_id);
 -- Không có update/delete: lịch sử thí luyện chỉ thêm, không sửa.
 
 create or replace view public.best_scores
