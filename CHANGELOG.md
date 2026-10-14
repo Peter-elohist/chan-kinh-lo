@@ -1,5 +1,12 @@
 # Nhật ký phiên bản
 
+## v0.3.0 · 2026-10-14
+
+- Trang đầu thiết kế lại: cảnh giới hiện tại và khoảng cách tới cảnh giới kế tiếp, ba chỉ số, thẻ "Tiếp tục tu luyện" dẫn thẳng tới bài nên học, thang cảnh giới có ý nghĩa từng bậc, núi xa trên mặt đất. MacBook: hai cột, cây cố định bên phải.
+- Chữ: thang cỡ chữ co giãn theo màn hình (iPhone Air 420pt ↔ MacBook Air 1470px). Trang Tầng: số bài lớn kiểu chương sách, tiêu đề Noto Serif Display, điểm và trạng thái căn phải, các bài còn thiếu gộp một dòng. Trang Bài: hai cột trên máy tính, câu Kinh Thánh và nút thí luyện cố định bên phải; ý chính đánh số 01, 02.
+- Âm thanh thí luyện: mỗi câu trả lời là một nốt của giai điệu (8 câu "Ngọc Trúc", 10 câu "Vân Thuỷ"), sai thì cùng nốt nhưng trầm và mờ, câu cuối luôn về chủ âm Rê.
+- Linh khí 40 Hz: nền drone ngũ cung thở ở 40 Hz, cặp binaural 200/240 Hz, suối nhỏ và chuông ngọc thưa.
+
 ## v0.2.0 · 2026-10-14
 
 - Âm thanh huyền nhiệm: tổng hợp bằng Web Audio theo ba lớp gió → lấp lánh pha lê → chuông ngân; mỗi trạng thái một âm riêng (chạm, mở tầng, đúng, sai, thông quan, viên mãn, đột phá, nâng cấp, chưa đạt). Thêm "Linh khí" (gió và chuông tre nền, tắt mặc định). Có thể thay bằng tệp thu sẵn qua `assets/sfx/manifest.json`.

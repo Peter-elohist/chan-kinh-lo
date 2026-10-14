@@ -10,7 +10,8 @@ Hướng âm thanh: huyền nhiệm, thanh sạch, hữu cơ, có cảm giác n�
 | open | Mở một tầng | Khai mở nhẹ | magic spell power up shimmer (ngắn) | < 1s |
 | lesson | Mở một bài | Chuông ngân | soft magical notification chime | < 1.5s |
 | start | Vào thí luyện | Gõ tre | mystical wind bamboo chimes nature (cắt 2 tiếng) | < 0.6s |
-| right | Trả lời đúng | Thanh lọc, tích cực | cleanse positive shimmer crystal chime | < 1s |
+| answer | Mỗi câu trả lời | Một nốt của giai điệu phiên thí luyện (tổng hợp, không thay bằng tệp) | — | — |
+| right | Trả lời đúng (dự phòng) | Thanh lọc, tích cực | cleanse positive shimmer crystal chime | < 1s |
 | wrong | Trả lời sai | Lặng, không chói | soft low breath / muted chime | < 0.8s |
 | pass | Thí luyện ≥ 80 | Giác ngộ, giải phóng | mystic success chime magical reveal | 3–4s |
 | full | Thí luyện 100 | Thành tựu cấp cao | angelic swell resonant chime fantasy | 8–10s |

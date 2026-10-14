@@ -8,6 +8,7 @@
      open     entering a tier                       (short air + the tier's note)
      lesson   opening a lesson                      (single bowl chime)
      start    entering a trial                      (two bamboo chimes)
+     answer   each answered question: one note of the session melody (wrong = same note, muted)
      right    a correct answer                      (cleanse shimmer + chime that climbs with progress)
      wrong    a wrong answer                        (low breath, no harshness)
      pass     trial passed ≥80: awakening, release  (air rise → shimmer reveal → resonant chord)
@@ -15,13 +16,13 @@
      rank     realm breakthrough                    (deep energy rise → deep chime → shimmer crown)
      levelup  skill upgrade (for Cành, later)       (shimmer converges → opens into a chime)
      fail     trial not passed                      (descending breath, low bowl)
-   Ambient "linh khí": mountain wind with distant bamboo chimes, optional, very low. */
+   Ambient "linh khí": a 40 Hz breathing drone with a stream and jade chimes, optional, very low. */
 (function () {
   const CKL = (window.CKL = window.CKL || {});
   const KEY = 'ckl-sound', AKEY = 'ckl-ambient';
   const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v === 'on'; } catch (e) { return d; } };
   let on = read(KEY, true), amb = read(AKEY, false);
-  let ctx = null, master, dry, wet, white, brown, cur = null, files = {}, ambNode = null;
+  let ctx = null, master, dry, wet, white, brown, cur = null, files = {}, ambNode = null, cuesAnswer = null;
 
   // Chinese pentatonic, gong mode on D, from D3 upward.
   const NOTES = [146.83, 164.81, 185.0, 220.0, 246.94, 293.66, 329.63, 369.99, 440.0, 493.88, 587.33, 659.26, 739.99, 880.0, 987.77, 1174.66, 1318.51, 1479.98, 1760.0, 1975.53, 2349.32, 2637.02, 2959.96, 3520.0];
@@ -118,11 +119,44 @@
     [[1, 1, 0.35], [2.92, 0.28, 0.12], [5.1, 0.08, 0.06]].forEach(([r, a, d]) => { const os = ctx.createOscillator(), g = ctx.createGain(); os.frequency.value = f * r; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(G * a, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + d); os.connect(g); out(g, o.send ?? 0.6, o.bus, o.pan); os.start(t); os.stop(t + d + 0.05); });
   }
 
+  /* Jade chime (玉磬): glassy stone tone. muted = the same pitch, softened, for a wrong answer. */
+  function jade(f, t, o = {}) {
+    const L = o.len || 1.8, G = o.gain ?? 0.08, bus = o.bus; let dest = null;
+    if (o.muted) { dest = ctx.createBiquadFilter(); dest.type = 'lowpass'; dest.frequency.value = 1300; dest.Q.value = 0.4; out(dest, 0.35, bus); }
+    [[1, 1, 1], [1.002, 0.3, 0.9], [2.0, 0.22, 0.5], [3.01, 0.1, 0.3], [4.18, 0.05, 0.18]].forEach(([r, a, d]) => {
+      const os = ctx.createOscillator(), g = ctx.createGain(); os.type = 'sine'; os.frequency.value = f * r;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(G * a, t + (o.muted ? 0.012 : 0.004)); g.gain.exponentialRampToValueAtTime(0.0001, t + L * d);
+      os.connect(g); if (dest) g.connect(dest); else out(g, o.send ?? 0.55, bus, o.pan); os.start(t); os.stop(t + L * d + 0.05);
+    });
+  }
+  /* A warm low tone under the melody, marking the phrase and the final cadence. */
+  function under(f, t, o = {}) {
+    const lp = ctx.createBiquadFilter(), g = ctx.createGain(); lp.type = 'lowpass'; lp.frequency.value = 700;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(o.gain ?? 0.028, t + 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + (o.len || 2.6));
+    lp.connect(g); out(g, 0.6);
+    ['sine', 'triangle'].forEach((w, i) => { const os = ctx.createOscillator(), og = ctx.createGain(); os.type = w; os.frequency.value = f; og.gain.value = i ? 0.35 : 1; os.connect(og).connect(lp); os.start(t); os.stop(t + (o.len || 2.6) + 0.1); });
+  }
+  /* Answer melodies (pentatonic on D, indices into NOTES; 10 = D5, 15 = D6).
+     8 questions · "Ngọc Trúc" (Jade Bamboo): A D' B F# | B A E D  (call: leap up, settle on F#; answer: step down home)
+     10 questions · "Vân Thuỷ" (Cloud and Water): E A F# B A | D' B F# E D  (waves rising to A; one high crest, then flows home)
+     Other lengths borrow the 10-note arc and always close E → D. */
+  const MEL = { 3: [13, 11, 10], 4: [12, 13, 11, 10], 5: [13, 14, 12, 11, 10], 6: [12, 14, 13, 15, 11, 10], 8: [13, 15, 14, 12, 14, 13, 11, 10], 10: [11, 13, 12, 14, 13, 15, 14, 12, 11, 10] };
+  function melody(n) { if (MEL[n]) return MEL[n]; const base = MEL[10], m = []; for (let k = 0; k < n - 2; k++) m.push(base[Math.round(k * 7 / Math.max(1, n - 3))]); return m.concat([11, 10]); }
+  cuesAnswer = function (o = {}) {
+    const n = Math.max(1, o.n || 8), i = Math.min(o.i || 0, n - 1), m = melody(n), f = note(m[Math.min(i, m.length - 1)]), t = T(), last = i === n - 1, mid = Math.floor(n / 2);
+    if (o.ok) { jade(f, t, { gain: 0.085, len: last ? 3.4 : 1.9, pan: ((i % 3) - 1) * 0.25 }); shimmer(t + 0.02, 0.25, { dens: 12, lo: m[i] + 4, hi: m[i] + 8, gain: 0.005, shape: 'out' }); }
+    else jade(f, t, { gain: 0.05, len: last ? 1.6 : 0.9, muted: true });
+    if (i === 0) under(note(5), t, { len: 3 });
+    else if (i === mid) under(note(4), t, { len: 3 });
+    if (last) { under(note(0), t + 0.05, { gain: 0.03, len: 4 }); under(note(3), t + 0.08, { gain: 0.02, len: 3.6 }); }
+  };
+
   function newScene() { const g = ctx.createGain(), w = ctx.createGain(); g.connect(dry); w.connect(wet); g._w = w; return g; }
   function stop(fade = 0.5) { if (!ctx || !cur) return; const g = cur; cur = null; for (const x of [g, g._w]) { x.gain.cancelScheduledValues(T()); x.gain.setValueAtTime(x.gain.value, T()); x.gain.linearRampToValueAtTime(0.0001, T(fade)); } setTimeout(() => { try { g.disconnect(); g._w.disconnect(); } catch (e) {} }, fade * 1000 + 200); }
   const scene = () => { stop(0.12); return (cur = newScene()); };
 
   const cues = {
+    answer(o) { cuesAnswer(o); },
     tap() { chime(note(17), T(), { gain: 0.055, len: 1.1 }); },
     open(o = {}) { const t = T(), n = 8 + (o.n || 1); air(t, 0.45, { from: 500, to: 2600, gain: 0.05, peak: 0.55 }); chime(note(n), t + 0.18, { gain: 0.07, len: 2.4, soft: true }); shimmer(t + 0.16, 0.5, { dens: 10, lo: 16, hi: 21, gain: 0.008 }); },
     lesson() { chime(note(12), T(), { gain: 0.08, len: 2.2, soft: true }); },
@@ -167,16 +201,33 @@
     fail() { const bus = scene(), t = T(); air(t, 1.6, { from: 1200, to: 200, gain: 0.05, dark: true, peak: 0.2, bus }); chime(note(0), t + 0.1, { gain: 0.06, len: 3, soft: true, send: 0.4, bus }); chime(note(3), t + 0.5, { gain: 0.03, len: 2.4, soft: true, bus }); }
   };
 
-  /* Linh khí ambience: wind breathing through bamboo, a chime now and then. */
+  /* Linh khí · "Mindstream 40 Hz" style: a slow pentatonic drone that breathes at 40 Hz (soft isochronic pulse),
+     a 200/240 Hz binaural pair (a 40 Hz beat with headphones), a quiet stream and an occasional jade chime. */
+  const CHORDS = [[146.83, 220, 329.63, 440], [123.47, 185, 293.66, 440], [164.81, 246.94, 369.99, 493.88], [146.83, 220, 293.66, 369.99]];
   function ambientStart() {
-    if (!ctx || ambNode) return; const g = ctx.createGain(), w = ctx.createGain(); g.connect(dry); w.connect(wet); g._w = w; g.gain.value = 0.0001; g.gain.linearRampToValueAtTime(1, T(3));
-    const n = ctx.createBufferSource(); n.buffer = brown; n.loop = true; const bp = ctx.createBiquadFilter(), ng = ctx.createGain(), l = ctx.createOscillator(), lg = ctx.createGain();
-    bp.type = 'bandpass'; bp.frequency.value = 380; bp.Q.value = 0.6; l.frequency.value = 0.07; lg.gain.value = 200; l.connect(lg).connect(bp.frequency); ng.gain.value = 0.035;
-    n.connect(bp).connect(ng); out(ng, 0.3, g); n.start(); l.start();
-    const tick = () => { if (!ambNode) return; if (!document.hidden) { const k = 1 + ((Math.random() * 3) | 0); for (let i = 0; i < k; i++) bamboo(note(10 + ((Math.random() * 8) | 0)), T(i * rnd(0.12, 0.35)), { gain: rnd(0.008, 0.02), pan: rnd(-0.8, 0.8), bus: g }); } ambNode.timer = setTimeout(tick, rnd(4000, 9000)); };
-    ambNode = { g, n, l, timer: setTimeout(tick, 2500) };
+    if (!ctx || ambNode) return; const t0 = T();
+    const g = ctx.createGain(), w = ctx.createGain(); g.connect(dry); w.connect(wet); g._w = w; g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(1, t0 + 5);
+    // Pad bus with 40 Hz amplitude breathing.
+    const pad = ctx.createGain(), am = ctx.createOscillator(), amg = ctx.createGain(), lp = ctx.createBiquadFilter(), lfo = ctx.createOscillator(), lfg = ctx.createGain();
+    pad.gain.value = 0.72; am.frequency.value = 40; amg.gain.value = 0.22; am.connect(amg).connect(pad.gain);
+    lp.type = 'lowpass'; lp.frequency.value = 1100; lp.Q.value = 0.3; lfo.frequency.value = 0.04; lfg.gain.value = 450; lfo.connect(lfg).connect(lp.frequency);
+    lp.connect(pad); out(pad, 0.55, g); am.start(); lfo.start();
+    // Binaural pair, very quiet.
+    const bins = [[200, -1], [240, 1]].map(([f, pan]) => { const os = ctx.createOscillator(), og = ctx.createGain(); os.frequency.value = f; og.gain.value = 0.008; os.connect(og); out(og, 0.05, g, pan); os.start(); return os; });
+    // Stream: brown noise, gently moving.
+    const n = ctx.createBufferSource(); n.buffer = brown; n.loop = true; const bp = ctx.createBiquadFilter(), ng = ctx.createGain(), sl = ctx.createOscillator(), sg = ctx.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = 480; bp.Q.value = 0.55; sl.frequency.value = 0.09; sg.gain.value = 160; sl.connect(sg).connect(bp.frequency); ng.gain.value = 0.013;
+    n.connect(bp).connect(ng); out(ng, 0.3, g); n.start(); sl.start();
+    let k = 0;
+    const chord = () => { if (!ambNode) return; const t = T(), c = CHORDS[k++ % CHORDS.length];
+      c.forEach((f, i) => [-1, 1].forEach(sd => { const os = ctx.createOscillator(), og = ctx.createGain(); os.type = i ? 'sine' : 'triangle'; os.frequency.value = f; os.detune.value = sd * (3 + i);
+        og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.022 / (1 + i * 0.5), t + 6); og.gain.setValueAtTime(0.022 / (1 + i * 0.5), t + 14); og.gain.linearRampToValueAtTime(0.0001, t + 21);
+        os.connect(og).connect(lp); os.start(t); os.stop(t + 21.2); }));
+      ambNode.chordT = setTimeout(chord, 14000); };
+    const chimeTick = () => { if (!ambNode) return; if (!document.hidden) jade(note(12 + ((Math.random() * 6) | 0)), T(), { gain: rnd(0.012, 0.025), len: 3.2, pan: rnd(-0.7, 0.7), bus: g }); ambNode.chimeT = setTimeout(chimeTick, rnd(7000, 14000)); };
+    ambNode = { g, srcs: [am, lfo, n, sl, ...bins] }; chord(); ambNode.chimeT = setTimeout(chimeTick, 4000);
   }
-  function ambientStop() { if (!ambNode) return; const a = ambNode; ambNode = null; clearTimeout(a.timer); a.g.gain.cancelScheduledValues(T()); a.g.gain.setValueAtTime(a.g.gain.value, T()); a.g.gain.linearRampToValueAtTime(0.0001, T(1.2)); setTimeout(() => { try { a.n.stop(); a.l.stop(); a.g.disconnect(); a.g._w.disconnect(); } catch (e) {} }, 1400); }
+  function ambientStop() { if (!ambNode) return; const a = ambNode; ambNode = null; clearTimeout(a.chordT); clearTimeout(a.chimeT); a.g.gain.cancelScheduledValues(T()); a.g.gain.setValueAtTime(a.g.gain.value, T()); a.g.gain.linearRampToValueAtTime(0.0001, T(1.5)); setTimeout(() => { try { a.srcs.forEach(x => x.stop()); a.g.disconnect(); a.g._w.disconnect(); } catch (e) {} }, 1700); }
 
   function play(name, o) {
     if (!on || !boot()) return;
