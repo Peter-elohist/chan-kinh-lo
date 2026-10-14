@@ -1,0 +1,94 @@
+[
+ {
+  "id": "t1",
+  "name": "Đức Chúa Trời và Kinh Thánh",
+  "lessons": [
+   "1.1"
+  ],
+  "claims": [
+   "Kinh Thánh chỉ là sách đạo đức do con người viết, không phải lời Đức Chúa Trời.",
+   "Khoa học đã đủ giải thích mọi thứ, không cần đến Đức Chúa Trời."
+  ]
+ },
+ {
+  "id": "t2",
+  "name": "Đấng Cứu Chúa và Danh Mới",
+  "lessons": [
+   "1.2",
+   "3.1"
+  ],
+  "claims": [
+   "Danh Jêsus dùng cho mọi thời đại, Kinh Thánh không hề nói về danh mới.",
+   "Cha, Con và Thánh Linh là ba Đức Chúa Trời riêng biệt."
+  ]
+ },
+ {
+  "id": "t3",
+  "name": "Lễ Vượt Qua và Lễ Trọng Thể",
+  "lessons": [
+   "1.3",
+   "4.5"
+  ],
+  "claims": [
+   "Lễ Vượt Qua là luật Cựu Ước, đã bị bãi bỏ ở thập tự giá.",
+   "Ăn bánh uống rượu lúc nào trong năm cũng được, ngày tháng không quan trọng."
+  ]
+ },
+ {
+  "id": "t4",
+  "name": "Đức Chúa Trời Mẹ",
+  "lessons": [
+   "1.4",
+   "3.3"
+  ],
+  "claims": [
+   "Kinh Thánh không nói về Đức Chúa Trời Mẹ; Giêrusalem trên trời chỉ là hình ảnh tượng trưng cho Hội Thánh."
+  ]
+ },
+ {
+  "id": "t5",
+  "name": "Menchixêđéc và giao ước mới",
+  "lessons": [
+   "3.2",
+   "3.6"
+  ],
+  "claims": [
+   "Báp-têm chỉ là nghi thức bên ngoài, chỉ cần tin trong lòng là được cứu."
+  ]
+ },
+ {
+  "id": "t6",
+  "name": "Lịch sử Hội Thánh",
+  "lessons": [
+   "3.4"
+  ],
+  "claims": [
+   "Giáo hội lớn nhất, lâu đời nhất chắc chắn là Hội Thánh thật."
+  ]
+ },
+ {
+  "id": "t7",
+  "name": "Lời tiên tri",
+  "lessons": [
+   "4.1",
+   "5.7",
+   "5.8",
+   "5.9"
+  ],
+  "claims": [
+   "Đấng Christ tái lâm chỉ đến trên đám mây trời, không thể đến trong xác thịt.",
+   "Lời tiên tri trong Đaniên và Khải Huyền đã ứng nghiệm hết trong quá khứ."
+  ]
+ },
+ {
+  "id": "t8",
+  "name": "Luật pháp và Sabát",
+  "lessons": [
+   "5.6"
+  ],
+  "claims": [
+   "Chủ Nhật là ngày thờ phượng đúng vì Đấng Christ sống lại ngày đó.",
+   "Tôn kính thập tự giá là bày tỏ đức tin, không phải thờ hình tượng."
+  ]
+ }
+]

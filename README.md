@@ -39,10 +39,17 @@ python3 scripts/build_goc.py ~/Documents/Brain/"10 Lẽ Thật"
 
 Script giữ nguyên phần viết tay (rễ phụ thuộc bài nào, câu thí luyện, câu Kinh Thánh) và liệt kê ghi chú mới chưa được gắn.
 
+## AI (luận chiến, nhiệm vụ hằng ngày)
+
+Trong bản xem trước Claude, AI dùng quyền "sample" của trang. Trên webapp, AI đi qua Edge Function `supabase/functions/ai` (đã triển khai). Cần hai secret trong Supabase → Edge Functions → Secrets:
+
+- `ANTHROPIC_API_KEY`: khoá API từ console.anthropic.com.
+- `ALLOWED_EMAILS`: email được phép dùng AI, cách nhau dấu phẩy.
+
 ## Supabase (lưu điểm)
 
 1. Tạo project trên supabase.com.
-2. SQL Editor → chạy `supabase/migrations/0001_init.sql`.
+2. SQL Editor → chạy lần lượt các tệp trong `supabase/migrations/`.
 3. Authentication → URL Configuration: thêm domain Vercel vào Site URL và Redirect URLs.
 4. Project Settings → API: chép Project URL và anon key vào `src/config.js`.
 

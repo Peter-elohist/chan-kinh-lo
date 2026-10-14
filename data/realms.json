@@ -1,0 +1,156 @@
+{
+ "stages": [
+  {
+   "n": 1,
+   "name": "Nhập Môn",
+   "level": "Sơ cấp",
+   "g": "壹"
+  },
+  {
+   "n": 2,
+   "name": "Thành Thục",
+   "level": "Trung cấp",
+   "g": "贰"
+  },
+  {
+   "n": 3,
+   "name": "Cao Thủ",
+   "level": "Cao cấp",
+   "g": "叁"
+  },
+  {
+   "n": 4,
+   "name": "Tông Sư · Huyền Thoại",
+   "level": "Tuyệt đỉnh",
+   "g": "肆"
+  }
+ ],
+ "levels": [
+  {
+   "i": 1,
+   "stage": 1,
+   "name": "Sơ Học Sạ Luyện",
+   "zh": "初学乍练",
+   "desc": "Vừa mới bắt đầu học, động tác còn gượng gạo, chưa quen bài quyền.",
+   "exp": 0
+  },
+  {
+   "i": 2,
+   "stage": 1,
+   "name": "Sơ Lộ Phong Mang",
+   "zh": "初露锋芒",
+   "desc": "Mới để lộ mũi nhọn: thành thục vài chiêu căn bản, bắt đầu lộ chút tài năng nhưng kinh nghiệm còn non.",
+   "exp": 120
+  },
+  {
+   "i": 3,
+   "stage": 1,
+   "name": "Ngọc Lĩnh Sơ Điêu",
+   "zh": "玉岭初雕",
+   "desc": "Như khối ngọc mới được chạm những nét đầu tiên: đã có hình dáng, chưa có độ tinh xảo.",
+   "exp": 300
+  },
+  {
+   "i": 4,
+   "stage": 2,
+   "name": "Lược Thông Bì Mao",
+   "zh": "略通皮毛",
+   "desc": "Hiểu qua loa bề mặt (da lông), chưa chạm được phần cốt lõi, tinh tuý.",
+   "exp": 550
+  },
+  {
+   "i": 5,
+   "stage": 2,
+   "name": "Tiệm Nhập Giai Cảnh",
+   "zh": "渐入佳境",
+   "desc": "Càng luyện càng tiến, bắt đầu đi vào cảnh giới tốt hơn, ra đòn có nét và có lực.",
+   "exp": 900
+  },
+  {
+   "i": 6,
+   "stage": 2,
+   "name": "Tiểu Hữu Sở Thành",
+   "zh": "小有所成",
+   "desc": "Đã đạt vài thành tựu nhỏ, có thể tự vệ và đánh bại người chưa học võ.",
+   "exp": 1350
+  },
+  {
+   "i": 7,
+   "stage": 2,
+   "name": "Dung Hội Quán Thông",
+   "zh": "融会贯通",
+   "desc": "Bắt đầu liên kết các chiêu thức, hiểu nguyên lý vận hành của bộ pháp và tâm pháp.",
+   "exp": 1900
+  },
+  {
+   "i": 8,
+   "stage": 3,
+   "name": "Lô Hoả Thuần Thanh",
+   "zh": "炉火纯青",
+   "desc": "Kỹ năng đã chín muồi, thuần thục tột bậc, như lửa lò đã chuyển sang xanh tinh khiết.",
+   "exp": 2600
+  },
+  {
+   "i": 9,
+   "stage": 3,
+   "name": "Xuất Thần Nhập Hoá",
+   "zh": "出神入化",
+   "desc": "Võ công đạt mức thần kỳ, biến hoá khôn lường, vượt tầm hiểu biết của người thường.",
+   "exp": 3450
+  },
+  {
+   "i": 10,
+   "stage": 3,
+   "name": "Đăng Phong Tạo Cực",
+   "zh": "登峰造极",
+   "desc": "Đã lên đỉnh núi cao nhất của một môn phái, không thể cao hơn được nữa.",
+   "exp": 4450
+  },
+  {
+   "i": 11,
+   "stage": 4,
+   "name": "Thâm Bất Khả Trắc",
+   "zh": "深不可测",
+   "desc": "Thâm sâu huyền bí, không thể đo lường hay đoán trước tu vi.",
+   "exp": 5650
+  },
+  {
+   "i": 12,
+   "stage": 4,
+   "name": "Phản Phác Quy Chân",
+   "zh": "返璞归真",
+   "desc": "Ra đòn giản dị mộc mạc như người thường, nhưng ẩn uy lực dời non lấp biển.",
+   "exp": 7050
+  },
+  {
+   "i": 13,
+   "stage": 4,
+   "name": "Thần Công Đại Thành",
+   "zh": "神功大成",
+   "desc": "Luyện thành hoàn toàn các bí kíp tối thượng.",
+   "exp": 8700
+  },
+  {
+   "i": 14,
+   "stage": 4,
+   "name": "Thiên Nhân Hợp Nhất",
+   "zh": "天人合一",
+   "desc": "Thân, ý hoà làm một với trời đất; một nhành củi khô cũng thành thần binh.",
+   "exp": 10600
+  }
+ ],
+ "rules": {
+  "graceDays": 3,
+  "decayNote": "Sau 3 ngày không thí luyện, mỗi ngày mất (1% + 0,6% × số thứ tự cảnh giới) EXP hiện có. Cảnh giới càng cao, tụt càng nhanh.",
+  "base": {
+   "1": 30,
+   "2": 40,
+   "3": 60,
+   "4": 90,
+   "daily": 70
+  },
+  "perfectBonus": 1.25,
+  "failFactor": 0.15,
+  "passScore": 50
+ }
+}

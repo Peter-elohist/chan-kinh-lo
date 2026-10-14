@@ -190,7 +190,7 @@
   function skipBtn(label) { const b = document.createElement('button'); b.className = 'skip'; b.type = 'button'; b.textContent = label || 'BỎ QUA'; b.onclick = () => close(true); return b; }
   function quake() { stage.classList.add('quake'); setTimeout(() => stage.classList.remove('quake'), 450); }
 
-  /* kind: 'pass' (>=80), 'full' (100), 'fail'. verse: {zh, zhRef, vi, viRef}. rankUp: new rank name or null. */
+  /* kind: 'pass' (>=80), 'full' (100), 'fail'. verse: {zh, zhRef, vi, viRef}. rankUp: null, a name, or {name, zh, stage}. */
   function moment(kind, verse, rankUp) {
     clear(); if (kind === 'fail') { sfx('fail'); ash(); return; }
     stage.classList.add('on'); document.body.classList.add('moment'); const v = verse || { zh: '', vi: '', zhRef: '', viRef: '' };
@@ -225,9 +225,12 @@
       later(() => (rankUp ? breakthrough(rankUp) : close()), 11000);
     }
   }
-  function breakthrough(name) {
-    timers.forEach(clearTimeout); timers = []; ribbon = null; sfx('rank'); paused = true;
-    stage.className = 'on'; document.body.classList.add('moment'); stage.innerHTML = '<div class="veil deep on"></div><div class="finale"><div class="caption"><span class="eyebrow">Đột phá cảnh giới</span><h2>' + esc(name) + '</h2></div></div>';
+  /* up: a name, or {name, zh, stage}; stage is set when the climb reaches a new tier of the mountain. */
+  function breakthrough(up) {
+    const o = typeof up === 'string' ? { name: up } : up;
+    timers.forEach(clearTimeout); timers = []; ribbon = null; sfx(o.stage ? 'rank' : 'levelup'); paused = true;
+    stage.className = 'on'; document.body.classList.add('moment');
+    stage.innerHTML = '<div class="veil deep on"></div><div class="finale"><div class="caption"><span class="eyebrow">' + (o.stage ? 'Đột phá · lên tầng núi ' + esc(o.stage) : 'Đột phá cảnh giới') + '</span>' + (o.zh ? '<span class="bt-zh" lang="zh-Hans">' + esc(o.zh) + '</span>' : '') + '<h2>' + esc(o.name) + '</h2></div></div>';
     stage.appendChild(skipBtn('ĐÓNG'));
     ring(W / 2, H * 0.5, Math.max(W, H) * 0.85, 1.6); burst(W / 2, H * 0.5, 120, 400, 1.8, 3); slips(14, W / 2, H * 0.55);
     later(close, 4600);

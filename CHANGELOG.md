@@ -1,5 +1,15 @@
 # Nhật ký phiên bản
 
+## v0.4.0 · 2026-10-14
+
+- Hệ thống tu luyện mới: 14 cảnh giới trong 4 giai đoạn (Nhập Môn, Thành Thục, Cao Thủ, Tông Sư · Huyền Thoại), từ Sơ Học Sạ Luyện tới Thiên Nhân Hợp Nhất. `data/realms.json`.
+- Cảnh giới tính theo EXP từ thí luyện, không theo chủ đề. Sau 3 ngày không thí luyện, EXP tụt mỗi ngày (1% + 0,6% × số thứ tự cảnh giới); cảnh giới càng cao tụt càng nhanh. Lặp lại cùng thí luyện trong ngày cho ít EXP hơn. `src/exp.js`.
+- Bỏ cây rễ, thay bằng leo núi: 4 tầng núi là 4 giai đoạn, 14 trạm là 14 cảnh giới, điểm sáng là vị trí hiện tại. Đột phá cảnh giới và đột phá tầng núi có hoạt cảnh riêng. `src/mountain.js`.
+- Thí luyện theo độ khó: Sơ (căn bản 8 câu), Trung (ôn rễ phụ), Cao (hỗn chiến 10 câu, 25 giây mỗi câu), Tuyệt (luận chiến với AI phản bác chủ trương giả dối, 3 lượt, giám khảo chấm 4 tiêu chí).
+- Nhiệm vụ hằng ngày: mổ xẻ một hoàn cảnh đời sống (gốc rễ, nguyên tắc Lẽ thật, một việc làm); AI chấm và đặt câu hỏi đào sâu, hoặc tự chấm khi chưa có AI.
+- Tàng Kinh Các: Lẽ thật cơ bản (15/50 bài EA) và 8 chủ đề củng cố, nâng cao, mở rộng. `data/goc/topics.json`.
+- Supabase: bảng attempts thành sổ thí luyện (EXP, độ khó, chủ đề, biên bản); Edge Function `ai` gọi Claude, chỉ cho email được phép.
+
 ## v0.3.1 · 2026-10-14
 
 - Nền chuyển từ đen tuyền sang than ấm (#1A1916) có quầng sáng nhẹ phía trên, đỡ nặng mắt; chữ giấy bớt chói (#E4E0D6).

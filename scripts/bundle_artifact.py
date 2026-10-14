@@ -21,6 +21,8 @@ data = {
     "rootlets": load("data/goc/rootlets.json"),
     "questions": load("data/goc/questions.json"),
     "verses": load("data/bible/keyverses.json"),
+    "topics": load("data/goc/topics.json"),
+    "realms": load("data/realms.json"),
 }
 safe = lambda s: s.replace("</script", "<\\/script")
 
@@ -31,7 +33,7 @@ html = re.sub(r'<script src="https://cdn.jsdelivr.net/npm/@supabase[^"]*"></scri
 data_js = "window.CKL_DATA=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
 html = html.replace('<script src="src/sound.js"></script>', "<script>" + safe(data_js) + "</script>\n<script src=\"src/sound.js\"></script>")
 html = html.replace('<script src="src/fx.js"></script>', "<script>" + safe(read("src/fx.js")) + "</script>")
-for f in ("sound", "store", "app"):
+for f in ("sound", "exp", "mountain", "store", "ai", "app"):
     html = html.replace(f'<script src="src/{f}.js"></script>', "<script>" + safe(read(f"src/{f}.js")) + "</script>")
 
 out.parent.mkdir(parents=True, exist_ok=True)
