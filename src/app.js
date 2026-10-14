@@ -27,6 +27,16 @@
   const topicOf = lessonId => D.topics.find(t => t.lessons.includes(lessonId));
   const topicRootlets = t => t.lessons.flatMap(id => D.lessons[id].roots).filter(r => D.rootlets[r]);
   const state = () => X.fold(store.events);
+  /* What the current tier of the mountain opens in Tàng Kinh Các: I → EA 1–10, II → EA 1–30, III → all 50, IV → whole vault. */
+  const eaNum = id => { const [a, b] = id.split('.').map(Number); return (a - 1) * 10 + b; };
+  const isOpen = id => eaNum(id) <= state().stage.ea;
+  const openLessons = () => Object.keys(D.lessons).filter(isOpen);
+  const topicOpen = t => t.lessons.some(isOpen);
+  const openRootletsOf = t => t.lessons.filter(isOpen).flatMap(id => D.lessons[id].roots).filter(r => D.rootlets[r]);
+  const openRootlets = () => openLessons().flatMap(id => D.lessons[id].roots).filter(r => D.rootlets[r]);
+  const opensAt = ea => D.realms.stages.find(st => ea <= st.ea);
+  const ROMAN = ['I', 'II', 'III', 'IV'];
+  const lockTxt = ea => { const st = opensAt(ea); return st ? 'Mở ở tầng núi ' + ROMAN[st.n - 1] : 'Chưa mở'; };
   const fmt = n => Number(n).toLocaleString('vi-VN');
   const hrs = ms => { const h = Math.round(ms / 3600000); return h >= 24 ? Math.floor(h / 24) + ' ngày ' + (h % 24) + ' giờ' : h + ' giờ'; };
 
@@ -36,10 +46,12 @@
   function render() {
     const a = $('#app'), v = route.v;
     a.innerHTML = v === 'home' ? vHome() : v === 'library' ? vLibrary() : v === 'tier' ? vTier(route.n) : v === 'lesson' ? vLesson(route.id) : v === 'topic' ? vTopic(route.t) : v === 'rootlet' ? vRootlet(route.t)
-      : v === 'pick' ? vPick(route.mode) : v === 'test' ? vTest() : v === 'debate' ? vDebate() : v === 'daily' ? vDaily() : vResult();
+      : v === 'pick' ? vPick(route.mode) : v === 'test' ? vTest() : v === 'debate' ? vDebate() : v === 'daily' ? vDaily()
+      : v === 'boss' ? vBoss() : v === 'recall' ? vRecall() : v === 'duel' ? vDuel() : vResult();
     bind(); if (v === 'home') drawMountain(); if (v === 'test') armTimer();
+    if (v === 'duel' && duel && duel.phase === 'menu' && duel.mine === undefined && store.mode === 'supabase' && store.user) { duel.mine = null; rpc('my_duels', {}).then(m => { duel.mine = m || []; if (route.v === 'duel') render(); }).catch(() => {}); }
   }
-  store.onChange = () => { if (!['test', 'debate', 'daily'].includes(route.v)) render(); };
+  store.onChange = () => { if (!['test', 'debate', 'daily', 'boss', 'recall', 'duel'].includes(route.v)) render(); };
   DESKTOP.addEventListener('change', () => { if (route.v === 'home') render(); });
 
   /* ---------- Home: the climb ---------- */
@@ -50,7 +62,7 @@
   }
   function soundLine() {
     if (!CKL.sfx) return '';
-    return `<div class="sounds"><button class="sound" type="button" data-sound aria-pressed="${CKL.sfx.on}">Âm thanh · ${CKL.sfx.on ? 'Bật' : 'Tắt'}</button><button class="sound" type="button" data-ambient aria-pressed="${CKL.sfx.ambient}">Linh khí 40 Hz · ${CKL.sfx.ambient ? 'Bật' : 'Tắt'}</button></div>`;
+    return `<div class="sounds"><button class="sound" type="button" data-sound aria-pressed="${CKL.sfx.on}">Âm thanh · ${CKL.sfx.on ? 'Bật' : 'Tắt'}</button><button class="sound" type="button" data-ambient aria-pressed="${CKL.sfx.ambient}">Linh khí · ${CKL.sfx.ambient ? 'Bật' : 'Tắt'}</button></div>`;
   }
   function statusLine(s) {
     if (s.lastAt === null) return `<p class="status">Chưa có thí luyện nào. Mỗi lần thí luyện cho EXP để leo núi.</p>`;
@@ -80,13 +92,21 @@
           <span><b>${fmt(s.exp)} EXP</b>${s.next ? ` · còn ${fmt(s.toNext)} để lên <b>${esc(s.next.name)}</b>` : ' · đỉnh cao nhất'}</span></div>
         ${dropNote(s)}${statusLine(s)}
       </header>
+      ${gateCard(s)}
       ${s.todayDaily ? `<div class="cont done"><span class="eyebrow">Nhiệm vụ hôm nay</span><strong>Đã mổ xẻ một hoàn cảnh hôm nay.</strong><em>Quay lại ngày mai.</em></div>`
         : `<button class="cont" type="button" data-daily><span class="eyebrow">Nhiệm vụ hôm nay · +${base.daily} EXP</span><strong>Mổ xẻ một hoàn cảnh trong đời sống</strong><em>Kể lại, tìm gốc rễ, nối với Lẽ thật, chọn một việc làm.</em><span class="go">Bắt đầu</span></button>`}
       <div class="modes" role="list">${MODES.map(m => `<button class="mode" type="button" role="listitem" data-pick="${m.mode}"><span class="lv lv${m.d}">${DIFF[m.d]}</span><span class="body"><b>${m.name}</b><small>${m.desc}</small></span><span class="xp">+${base[m.d]}</span></button>`).join('')}</div>
       <div class="home-tree mtwrap"><svg id="mountain" viewBox="-30 0 460 600" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Núi tu luyện: 14 cảnh giới trên 4 tầng núi"></svg><p class="mt-cap" aria-live="polite"></p></div>
-      <button class="libline" type="button" data-go="library"><span class="eyebrow">Tàng Kinh Các</span><span>Lẽ thật cơ bản ${Object.keys(D.lessons).length}/50 bài EA · ${D.topics.length} chủ đề củng cố, mở rộng</span><span class="go">Mở</span></button>
+      <button class="libline" type="button" data-go="library"><span class="eyebrow">Tàng Kinh Các · đang mở ${esc(s.stage.unlock)}</span><span>${openLessons().length}/${Object.keys(D.lessons).length} bài EA trong Brain · ${D.topics.filter(topicOpen).length}/${D.topics.length} chủ đề củng cố, mở rộng</span><span class="go">Mở</span></button>
+      <button class="libline duelline" type="button" data-go="duel"><span class="eyebrow">Song đấu</span><span>Mời người khác cùng đánh một thí luyện, so điểm phân thắng thua</span><span class="go">Mở</span></button>
       <footer class="foot">${soundLine()}${saveLine()}<p class="note">${esc(R.rules.decayNote)} Lặp lại cùng một thí luyện trong ngày cho ít EXP hơn.</p></footer>
     </section>`;
+  }
+  function gateCard(s) {
+    const g = s.gate, B = D.realms.boss; if (!g) return '';
+    if (!g.atCeiling) return '';
+    if (!g.ready) return `<div class="cont gate done"><span class="eyebrow">Bình cảnh · ải tầng núi ${ROMAN[g.stage - 1]}</span><strong>Ải đang hồi phục</strong><em>Thử lại sau ${hrs(g.cooldown)}. EXP dừng ở bình cảnh cho tới khi vượt ải.</em></div>`;
+    return `<button class="cont gate" type="button" data-boss><span class="eyebrow">Bình cảnh · EXP đã dừng</span><strong>Vượt ải lên tầng núi ${ROMAN[g.stage - 1]} · ${esc(g.name)}</strong><em>${B.minutes / 60} giờ · đủ 4 loại thí luyện · cần từ ${B.pass} điểm, mỗi phần từ ${B.partMin}. Thắng: +${B.reward} EXP và mở ${esc(D.realms.stages[g.stage - 1].unlock)}.</em><span class="go">Vào ải</span></button>`;
   }
   function drawMountain() {
     const svg = $('#mountain'); if (!svg) return; const s = state(), cap = $('.mt-cap');
@@ -101,26 +121,30 @@
     const m = MODES.find(x => x.mode === mode);
     if (mode === 'basic') return vLibrary(m);
     const rows = D.topics.map(t => {
-      const n = mode === 'rootlet' ? topicRootlets(t).length : mode === 'mix' ? t.lessons.reduce((a, id) => a + (D.questions[id] || []).length, 0) : t.claims.length;
+      if (!topicOpen(t)) return `<li><div class="lrow locked"><span class="num">${t.id.slice(1)}</span><span class="body"><span class="title">${esc(t.name)}</span><span class="sub">${lockTxt(Math.min(...t.lessons.map(eaNum)))}</span></span><span class="st"><small>Khoá</small></span></div></li>`;
+      const n = mode === 'rootlet' ? openRootletsOf(t).length : mode === 'mix' ? t.lessons.filter(isOpen).reduce((a, id) => a + (D.questions[id] || []).length, 0) : t.claims.length;
       const unit = mode === 'rootlet' ? 'rễ phụ' : mode === 'mix' ? 'câu trong kho' : 'chủ trương';
-      return `<li><button class="lrow" type="button" data-topic="${t.id}"><span class="num">${t.id.slice(1)}</span><span class="body"><span class="title">${esc(t.name)}</span><span class="sub">EA ${t.lessons.join(', ')} · ${n} ${unit}</span></span><span class="st"><small>Chọn</small></span></button></li>`;
+      return `<li><button class="lrow" type="button" data-topic="${t.id}"><span class="num">${t.id.slice(1)}</span><span class="body"><span class="title">${esc(t.name)}</span><span class="sub">EA ${t.lessons.filter(isOpen).join(', ')} · ${n} ${unit}</span></span><span class="st"><small>Chọn</small></span></button></li>`;
     }).join('');
     return `<section class="view narrow"><button class="back" type="button" data-go="home">← Núi</button>
       <header class="lessonhead"><span class="eyebrow"><span class="lv lv${m.d}">${DIFF[m.d]}</span> · +${D.realms.rules.base[m.d]} EXP</span><h1>${m.name}</h1><p class="why">${m.desc}${mode === 'debate' ? ' Mỗi chủ đề có các chủ trương thường gặp; AI đóng vai người bảo vệ chủ trương để bạn rèn phản biện.' : ''}</p></header>
-      ${mode === 'mix' ? `<button class="btn" type="button" data-mixall>Hỗn chiến mọi chủ đề · 10 câu</button>` : ''}
+      ${mode === 'mix' ? `<button class="btn" type="button" data-mixall>Hỗn chiến mọi bài đang mở · 10 câu</button>` : ''}
       <ol class="lessons">${rows}</ol></section>`;
   }
 
   /* ---------- Library ---------- */
   function vLibrary(asMode) {
     const lsAll = Object.values(D.lessons);
-    const tiers = D.tiers.map((t, i) => { const n = i + 1, ls = tierLessons(n), pc = ls.filter(l => passed(l.id)).length;
-      return `<li><button class="lrow" type="button" data-go="tier" data-n="${n}"><span class="num g" lang="zh-Hans">${t.g}</span><span class="body"><span class="title">EA ${n}.1 – ${n}.10</span><span class="sub">${ls.length ? ls.length + ' bài trong Brain · ' + pc + ' thông quan' : 'Chưa có bài'}</span></span><span class="st"><small>${ls.length}/10</small></span></button></li>`; }).join('');
-    const topics = D.topics.map(t => `<li><button class="lrow" type="button" data-topic-open="${t.id}"><span class="num">${t.id.slice(1)}</span><span class="body"><span class="title">${esc(t.name)}</span><span class="sub">${topicRootlets(t).length} rễ phụ · EA ${t.lessons.join(', ')}</span></span><span class="st"><small>Mở</small></span></button></li>`).join('');
+    const tiers = D.tiers.map((t, i) => { const n = i + 1, ls = tierLessons(n), pc = ls.filter(l => passed(l.id)).length, first = (n - 1) * 10 + 1;
+      if (first > state().stage.ea) return `<li><div class="lrow locked"><span class="num g" lang="zh-Hans">${t.g}</span><span class="body"><span class="title">EA ${first} – ${first + 9}</span><span class="sub">${lockTxt(first)} · ${ls.length} bài trong Brain</span></span><span class="st"><small>Khoá</small></span></div></li>`;
+      return `<li><button class="lrow" type="button" data-go="tier" data-n="${n}"><span class="num g" lang="zh-Hans">${t.g}</span><span class="body"><span class="title">EA ${first} – ${first + 9}</span><span class="sub">${ls.length ? ls.length + ' bài trong Brain · ' + pc + ' thông quan' : 'Chưa có bài'}</span></span><span class="st"><small>${ls.length}/10</small></span></button></li>`; }).join('');
+    const topics = D.topics.map(t => !topicOpen(t) ? `<li><div class="lrow locked"><span class="num">${t.id.slice(1)}</span><span class="body"><span class="title">${esc(t.name)}</span><span class="sub">${lockTxt(Math.min(...t.lessons.map(eaNum)))}</span></span><span class="st"><small>Khoá</small></span></div></li>` : `<li><button class="lrow" type="button" data-topic-open="${t.id}"><span class="num">${t.id.slice(1)}</span><span class="body"><span class="title">${esc(t.name)}</span><span class="sub">${openRootletsOf(t).length} rễ phụ · EA ${t.lessons.filter(isOpen).join(', ')}</span></span><span class="st"><small>Mở</small></span></button></li>`).join('');
+    const vault = state().stage.vault ? `<li><div class="lrow"><span class="num">∞</span><span class="body"><span class="title">Toàn bộ Vault</span><span class="sub">Đã mở. Chạy scripts/build_goc.py với cả thư mục Brain để nạp.</span></span></div></li>`
+      : `<li><div class="lrow locked"><span class="num">∞</span><span class="body"><span class="title">Toàn bộ kiến thức trong Vault</span><span class="sub">Mở ở tầng núi IV · Tông Sư</span></span><span class="st"><small>Khoá</small></span></div></li>`;
     return `<section class="view library"><button class="back" type="button" data-go="home">← Núi</button>
       <header class="lessonhead"><span class="eyebrow">${asMode ? `<span class="lv lv1">Sơ</span> · chọn một bài EA để học rồi thí luyện` : 'Tàng Kinh Các'}</span><h1>${asMode ? 'Thí luyện căn bản' : 'Kho Lẽ Thật'}</h1></header>
-      <div class="libcols"><div class="sec"><span class="eyebrow">Lẽ thật cơ bản · ${lsAll.length}/50 bài EA</span><div class="prog"><i style="width:${(lsAll.length / 50 * 100).toFixed(0)}%"></i></div><ol class="lessons">${tiers}</ol></div>
-      ${asMode ? '' : `<div class="sec"><span class="eyebrow">Củng cố · Nâng cao · Mở rộng</span><ol class="lessons">${topics}</ol></div>`}</div></section>`;
+      <div class="libcols"><div class="sec"><span class="eyebrow">Lẽ thật cơ bản · đang mở ${esc(state().stage.unlock)} · ${lsAll.length}/50 bài có trong Brain</span><div class="prog"><i style="width:${(lsAll.length / 50 * 100).toFixed(0)}%"></i></div><ol class="lessons">${tiers}</ol></div>
+      ${asMode ? '' : `<div class="sec"><span class="eyebrow">Củng cố · Nâng cao · Mở rộng</span><ol class="lessons">${topics}${vault}</ol></div>`}</div></section>`;
   }
   function vTier(n) {
     const t = D.tiers[n - 1], ls = tierLessons(n), pc = ls.filter(l => passed(l.id)).length, rows = [];
@@ -129,7 +153,8 @@
       const id = n + '.' + j, l = D.lessons[id];
       if (!l) { gap = gap ? [gap[0], j] : [j, j]; continue; } flush();
       const st = status(id), b = best(id);
-      rows.push(`<li><button class="lrow ${st}" type="button" data-lesson="${id}"><span class="num">${id}</span><span class="body"><span class="title">${esc(l.title)}</span><span class="sub">${l.roots.length ? l.roots.length + ' rễ phụ · ' : ''}${(D.questions[id] || []).length} câu thí luyện</span></span><span class="st">${b === undefined ? '<small>Chưa thử</small>' : `<b>${b}</b><small>${st === 'full' ? 'Viên mãn' : st === 'pass' ? 'Thông quan' : 'Chưa đạt'}</small>`}</span></button></li>`);
+      if (!isOpen(id)) { rows.push(`<li><div class="lrow locked"><span class="num">${eaNum(id)}</span><span class="body"><span class="title">${esc(l.title)}</span><span class="sub">${lockTxt(eaNum(id))}</span></span><span class="st"><small>Khoá</small></span></div></li>`); continue; }
+      rows.push(`<li><button class="lrow ${st}" type="button" data-lesson="${id}"><span class="num">${eaNum(id)}</span><span class="body"><span class="title">${esc(l.title)}</span><span class="sub">${l.roots.length ? l.roots.length + ' rễ phụ · ' : ''}${(D.questions[id] || []).length} câu thí luyện</span></span><span class="st">${b === undefined ? '<small>Chưa thử</small>' : `<b>${b}</b><small>${st === 'full' ? 'Viên mãn' : st === 'pass' ? 'Thông quan' : 'Chưa đạt'}</small>`}</span></button></li>`);
     }
     flush();
     return `<section class="tierv"><aside class="tier-hero"><button class="back" type="button" data-go="library">← Tàng Kinh Các</button>
@@ -140,11 +165,11 @@
       <ol class="lessons">${rows.join('')}</ol></section>`;
   }
   function vTopic(id) {
-    const t = D.topics.find(x => x.id === id), rs = topicRootlets(t);
+    const t = D.topics.find(x => x.id === id), rs = openRootletsOf(t);
     return `<section class="view narrow"><button class="back" type="button" data-go="library">← Tàng Kinh Các</button>
       <header class="lessonhead"><span class="eyebrow">Chủ đề ${t.id.slice(1)} · EA ${t.lessons.join(', ')}</span><h1>${esc(t.name)}</h1></header>
       <div class="two"><button class="btn ghost" type="button" data-mix="${t.id}">Hỗn chiến chủ đề</button><button class="btn" type="button" data-debate="${t.id}">Luận chiến</button></div>
-      <div class="sec"><span class="eyebrow">Bài EA</span><div class="rootlets">${t.lessons.map(l => `<button class="rl" type="button" data-lesson="${l}"><span>EA ${l} · ${esc(D.lessons[l].title)}</span><em>${best(l) === undefined ? 'chưa thử' : best(l) + ' điểm'}</em></button>`).join('')}</div></div>
+      <div class="sec"><span class="eyebrow">Bài EA</span><div class="rootlets">${t.lessons.map(l => isOpen(l) ? `<button class="rl" type="button" data-lesson="${l}"><span>EA ${eaNum(l)} · ${esc(D.lessons[l].title)}</span><em>${best(l) === undefined ? 'chưa thử' : best(l) + ' điểm'}</em></button>` : `<div class="rl locked"><span>EA ${eaNum(l)} · ${esc(D.lessons[l].title)}</span><em>${lockTxt(eaNum(l))}</em></div>`).join('')}</div></div>
       <div class="sec"><span class="eyebrow">Rễ phụ · ${rs.length}</span><div class="rootlets">${rs.map(r => `<button class="rl" type="button" data-rootlet="${esc(r)}"><span>${esc(r)}</span><em>${rbest(r) === undefined ? D.rootlets[r].qa.length + ' câu' : rbest(r) + ' điểm'}</em></button>`).join('')}</div></div></section>`;
   }
 
@@ -159,7 +184,7 @@
     const l = D.lessons[id], st = status(id), b = best(id), q = D.questions[id] || [], n = id.split('.')[0], t = topicOf(id);
     return `<section class="lessonv"><button class="back" type="button" data-go="tier" data-n="${n}">← Tầng ${n}</button>
       <div class="l-main">
-        <header class="lessonhead"><span class="eyebrow">EA ${id}${t ? ' · ' + esc(t.name) : ''}</span><h1>${esc(l.title)}</h1><span class="chip ${st !== 'open' ? 'on' : ''}">${st === 'full' ? 'Viên mãn · 100' : st === 'pass' ? 'Thông quan · ' + b : b !== undefined ? 'Cao nhất ' + b + ' điểm' : 'Chưa thí luyện'}</span></header>
+        <header class="lessonhead"><span class="eyebrow">EA ${eaNum(id)}${t ? ' · ' + esc(t.name) : ''}</span><h1>${esc(l.title)}</h1><span class="chip ${st !== 'open' ? 'on' : ''}">${st === 'full' ? 'Viên mãn · 100' : st === 'pass' ? 'Thông quan · ' + b : b !== undefined ? 'Cao nhất ' + b + ' điểm' : 'Chưa thí luyện'}</span></header>
         <div class="sec points"><span class="eyebrow">Ý chính</span><ol>${l.y.map(x => `<li>${esc(x)}</li>`).join('')}</ol>${l.why ? `<p class="why">${esc(l.why)}</p>` : ''}</div>
         ${l.img ? `<div class="sec imgsec"><span class="eyebrow">Hình dung</span><p class="img">${esc(l.img)}</p></div>` : ''}
         ${l.roots.length ? `<div class="sec roots"><span class="eyebrow">Rễ phụ · ${l.roots.length}</span><div class="rootlets">${l.roots.map(r => `<button class="rl" type="button" data-rootlet="${esc(r)}"><span>${esc(r)}</span><em>${rbest(r) === undefined ? D.rootlets[r].qa.length + ' câu' : rbest(r) + ' điểm'}</em></button>`).join('')}</div></div>` : ''}
@@ -183,7 +208,7 @@
   function startTest(id) { const pv = verseOf(id); if (pv) fx.prepare(pv.zh); test = { kind: 'lesson', mode: 'basic', difficulty: 1, id, topic: (topicOf(id) || {}).id, verse: pv, title: 'EA ' + id + ' · ' + D.lessons[id].title, items: shuffle(D.questions[id]).map(mcq), i: 0, ok: 0, pick: null, wrong: [] }; go({ v: 'test' }); }
   function startSelf(t) { const r = D.rootlets[t]; test = { kind: 'rootlet', mode: 'rootlet', difficulty: 2, id: t, topic: (topicOf(r.lesson) || {}).id, verse: verseOf(r.lesson), title: t, items: r.qa.map(x => ({ q: x[0], a: x[1] })), i: 0, ok: 0, flip: false, wrong: [] }; go({ v: 'test' }); }
   function startMix(topicId) {
-    const ids = topicId ? D.topics.find(t => t.id === topicId).lessons : Object.keys(D.lessons);
+    const ids = (topicId ? D.topics.find(t => t.id === topicId).lessons : Object.keys(D.lessons)).filter(isOpen);
     const pool = shuffle(ids.flatMap(id => (D.questions[id] || []).map(q => ({ ...mcq(q), from: id })))).slice(0, 10);
     const pv = verseOf(shuffle(ids)[0]); if (pv) fx.prepare(pv.zh);
     test = { kind: 'mix', mode: 'mix', difficulty: 3, id: topicId || 'all', topic: topicId || null, verse: pv, title: topicId ? 'Hỗn chiến · ' + D.topics.find(t => t.id === topicId).name : 'Hỗn chiến mọi chủ đề', items: pool, i: 0, ok: 0, pick: null, wrong: [], timed: 25 };
@@ -203,7 +228,7 @@
   }
   function vTest() {
     const T = test, it = T.items[T.i], pct = (T.i / T.items.length) * 100;
-    const top = `<button class="back" type="button" data-quit>← Dừng thí luyện</button><div class="qhead"><span><span class="lv lv${T.difficulty}">${DIFF[T.difficulty]}</span> ${esc(T.title)}</span><span>${T.i + 1}/${T.items.length}</span></div><div class="bar"><i style="width:${pct}%"></i></div>`;
+    const top = `<button class="back" type="button" data-quit>← Dừng thí luyện</button><div class="qhead"><span><span class="lv lv${T.difficulty}">${DIFF[T.difficulty]}</span> ${esc(T.title)}</span><span>${T.i + 1}/${T.items.length}</span></div><div class="bar"><i style="width:${pct}%"></i></div>${T.boss ? bossStrip() : ''}`;
     if (T.kind !== 'rootlet') {
       const done = T.pick !== null;
       return `<section class="view narrow">${top}${T.timed && !done ? '<div class="qtime"><i></i></div>' : ''}<p class="q">${esc(it.q)}</p><div class="opts" id="opts">${it.opts.map((o, k) => { let c = ''; if (done) { if (o === it.right) c = 'right'; else if (k === T.pick) c = 'wrong'; } return `<button class="opt ${c}" type="button" data-opt="${k}" ${done ? 'disabled' : ''}>${esc(o)}</button>`; }).join('')}</div>
@@ -224,6 +249,8 @@
   let res = null;
   async function finish() {
     const T = test, score = Math.round((T.ok / T.items.length) * 100);
+    if (T.boss) return bossPartDone(score);
+    if (T.duel) return duelDone(score, { correct: T.ok, total: T.items.length });
     res = await settle({ kind: T.kind, ref: T.id, mode: T.mode, difficulty: T.difficulty, topic: T.topic, score, correct: T.ok, total: T.items.length, wrong: T.wrong }, T.verse, T.kind === 'lesson' ? { v: 'lesson', id: T.id } : T.kind === 'rootlet' ? { v: 'rootlet', t: T.id } : { v: 'home' });
     res.title = T.title; res.again = T.kind === 'lesson' ? () => startTest(T.id) : T.kind === 'rootlet' ? () => startSelf(T.id) : () => startMix(T.topic);
     showResult();
@@ -240,7 +267,8 @@
     ${r.total ? `<p class="meta">${r.correct}/${r.total} câu đúng</p>` : ''}
     ${j ? judgeBlock(j) : ''}
     ${r.wrong && r.wrong.length ? `<div class="sec"><span class="eyebrow">Ôn lại</span><div class="miss">${r.wrong.map(w => `<div><b>${esc(w.q)}</b>${esc(w.a)}</div>`).join('')}</div></div>` : ''}
-    <div class="two"><button class="btn ghost" type="button" data-again>Thử lại</button><button class="btn" type="button" data-done>Xong</button></div></section>`;
+    ${r.bossScores ? `<ol class="bparts">${D.realms.boss.parts.map((p, k) => `<li class="${r.bossScores[k] >= D.realms.boss.partMin ? 'done' : ''}"><span class="lv lv${p.d}">${DIFF[p.d]}</span><b>${p.name}</b><small>${r.bossScores[k]} điểm</small></li>`).join('')}</ol>` : ''}
+    <div class="${r.again ? 'two' : ''}">${r.again ? '<button class="btn ghost" type="button" data-again>Thử lại</button>' : ''}<button class="btn" type="button" data-done>Xong</button></div></section>`;
   }
   function judgeBlock(j) {
     const crit = [['kinh_thanh', 'Bằng chứng Kinh Thánh'], ['logic', 'Lý lẽ'], ['goc_re', 'Đi vào gốc rễ'], ['thai_do', 'Thái độ']].filter(([k]) => j[k] !== undefined);
@@ -305,6 +333,8 @@ Tiêu chí: kinh_thanh = trích dẫn đúng chỗ và đúng ý; logic = lý l�
       const out = await ai.chat(judgeSys, [{ role: 'user', content: `Chủ trương: «${d.claim}»\nĐộ khó: ${DIFF[d.level]}\n\nBIÊN BẢN:\n${transcript}\n\nGHI CHÚ HỌC TẬP CỦA NGƯỜI HỌC:\n${refNotes(d.t)}` }], { maxTokens: 1200, tier: 'complex' });
       const j = ai.parseJSON(out); if (!j) throw { message: 'Giám khảo trả lời không đúng định dạng, thử lại.' };
       const score = Math.max(0, Math.min(100, Math.round(j.score ?? ((j.kinh_thanh || 0) + (j.logic || 0) + (j.goc_re || 0) + (j.thai_do || 0)))));
+      if (d.boss) { d.busy = false; return bossPartDone(score, j); }
+      if (d.duel) { d.busy = false; return duelDone(score, { judge: j }); }
       res = await settle({ kind: 'debate', ref: d.t.id + '-' + d.ci, mode: 'debate', difficulty: 4, mult: [1, 1.2, 1.5][d.level - 1], topic: d.t.id, score, correct: 0, total: 0, wrong: [], detail: { claim: d.claim, level: d.level, transcript: d.msgs, judge: j } }, verseOf(d.t.lessons[0]), { v: 'home' });
       res.judge = j; res.title = 'Luận chiến · ' + d.t.name; res.again = () => startDebate(d.t.id); d.busy = false; showResult();
     } catch (e) { d.busy = false; d.phase = 'talk'; d.err = ai.errText(e); render(); }
@@ -347,6 +377,155 @@ Tiêu chí: goc_re = có đi tới nguyên nhân gốc không; logic = lập lu�
     res.title = 'Nhiệm vụ hôm nay'; res.again = () => { day = null; go({ v: 'daily' }); }; day = null; showResult();
   }
 
+  /* ---------- Ghi nhớ (typed recall, graded by AI or by yourself) ---------- */
+  let rc = null;
+  const gradeSys = `Bạn chấm bài ghi nhớ. Với mỗi câu, so câu trả lời của người học với đáp án tham khảo: 2 = đúng ý chính, 1 = đúng một phần, 0 = sai hoặc bỏ trống. Không bắt bẻ câu chữ, chỉ xét ý.
+Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan_xet":"1–2 câu"}.`;
+  function startRecall(items, o) { rc = { items: items.map(x => ({ q: x[0], a: x[1], ans: '' })), i: 0, phase: 'ask', ...o }; go({ v: 'recall' }); }
+  function vRecall() {
+    const r = rc, it = r.items[r.i], top = `<button class="back" type="button" data-rquit>← ${r.boss ? 'Rời phần này' : 'Dừng'}</button><div class="qhead"><span><span class="lv lv2">Trung</span> ${esc(r.title)}</span><span>${Math.min(r.i + 1, r.items.length)}/${r.items.length}</span></div><div class="bar"><i style="width:${(r.i / r.items.length) * 100}%"></i></div>${r.boss ? bossStrip() : ''}`;
+    if (r.phase === 'ask') return `<section class="view narrow">${top}<p class="q">${esc(it.q)}</p><textarea id="rans" rows="4" placeholder="Trả lời theo trí nhớ, ý chính là đủ">${esc(it.ans)}</textarea><button class="btn" type="button" data-rnext>${r.i + 1 < r.items.length ? 'Câu tiếp' : 'Nộp bài'}</button></section>`;
+    if (r.phase === 'grading') return `<section class="view narrow">${top}<p class="status">Đang chấm…</p></section>`;
+    return `<section class="view narrow">${top}<p class="why">${r.err ? esc(r.err) + ' ' : ''}Tự chấm: so câu trả lời với đáp án, chọn mức đúng cho từng câu.</p>
+      ${r.items.map((x, k) => `<div class="card"><p class="q">${esc(x.q)}</p><p class="why">Bạn: ${esc(x.ans || '(bỏ trống)')}</p><p class="a">${esc(x.a)}</p><div class="chips">${[0, 1, 2].map(v => `<button type="button" class="chipbtn ${x.self === v ? 'on' : ''}" data-rself="${k}:${v}">${['Sai', 'Một phần', 'Đúng'][v]}</button>`).join('')}</div></div>`).join('')}
+      <button class="btn" type="button" data-rdone>Chốt điểm</button></section>`;
+  }
+  async function recallSubmit() {
+    const r = rc;
+    if (!(aiMode === 'claude' || aiMode === 'server')) { r.phase = 'self'; return render(); }
+    r.phase = 'grading'; render();
+    try {
+      const out = await ai.chat(gradeSys, [{ role: 'user', content: r.items.map((x, k) => `${k + 1}. Câu hỏi: ${x.q}\nĐáp án tham khảo: ${x.a}\nNgười học: ${x.ans || '(bỏ trống)'}`).join('\n\n') }], { maxTokens: 500, tier: 'quick' });
+      const j = ai.parseJSON(out); if (!j || !Array.isArray(j.diem)) throw { message: 'Không chấm được tự động.' };
+      recallScore(Math.round(j.diem.slice(0, r.items.length).reduce((a, b) => a + Math.max(0, Math.min(2, +b || 0)), 0) / (2 * r.items.length) * 100), j);
+    } catch (e) { r.err = ai.errText(e); r.phase = 'self'; render(); }
+  }
+  function recallScore(score, j) {
+    const r = rc; r.items.forEach((x, k) => { if ((j && j.diem ? j.diem[k] : x.self) < 2) (r.wrong = r.wrong || []).push({ q: x.q, a: x.a }); });
+    if (r.boss) return bossPartDone(score);
+    if (r.duel) return duelDone(score, { judge: j });
+  }
+
+  /* ---------- Vượt ải: the boss that guards each mountain tier ---------- */
+  const BKEY = 'ckl-boss';
+  let boss = null; try { const b = JSON.parse(localStorage.getItem(BKEY) || 'null'); if (b && !b.done) boss = b; } catch (e) {}
+  const saveBoss = () => { try { localStorage.setItem(BKEY, JSON.stringify(boss)); } catch (e) {} };
+  const clock = ms => { ms = Math.max(0, ms); const h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), sec = Math.floor(ms % 60000 / 1000); return h + ':' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0'); };
+  const bossHP = b => 100 - b.scores.reduce((a, x, k) => a + (x || 0) * D.realms.boss.parts[k].w / 100, 0);
+  function bossStrip() { const b = boss; return b ? `<div class="bstrip"><span>Ải tầng núi ${ROMAN[b.stage - 1]}</span><span class="btimer" data-deadline="${b.deadline}">${clock(b.deadline - Date.now())}</span></div>` : ''; }
+  function startBoss() {
+    const s = state(), B = D.realms.boss, ids = openLessons(); if (!s.gate || !s.gate.ready) return;
+    const all = () => shuffle(ids.flatMap(id => (D.questions[id] || []).map((q, k) => [id, k])));
+    let pool = all(); const take = n => { if (pool.length < n) pool = pool.concat(all()); return pool.splice(0, n); };
+    const recall = shuffle(openRootlets().flatMap(r => D.rootlets[r].qa.map(x => x))).slice(0, B.parts[1].n);
+    const tps = D.topics.filter(topicOpen), t = tps[(Math.random() * tps.length) | 0];
+    boss = { stage: s.gate.stage, name: s.gate.name, startedAt: Date.now(), deadline: Date.now() + B.minutes * 60000, part: 0, scores: [null, null, null, null], done: false,
+      spec: { mcq: take(B.parts[0].n), recall, mix: take(B.parts[2].n), debate: { topic: t.id, ci: (Math.random() * t.claims.length) | 0, level: Math.min(3, s.gate.stage - 1) } } };
+    saveBoss(); sfx('rank'); go({ v: 'boss' });
+  }
+  function vBoss() {
+    const s = state(), B = D.realms.boss, b = boss;
+    if (!b) {
+      const g = s.gate;
+      return `<section class="view narrow boss"><button class="back" type="button" data-go="home">← Núi</button>
+        <header class="lessonhead"><span class="eyebrow">Vượt ải${g ? ' · tầng núi ' + ROMAN[g.stage - 1] : ''}</span><h1>${g ? 'Ải ' + esc(g.name) : 'Đã ở tầng cao nhất'}</h1><p class="why">${esc(B.note)}</p></header>
+        <ol class="bparts">${B.parts.map(p => `<li><span class="lv lv${p.d}">${DIFF[p.d]}</span><b>${p.name}</b><small>${p.n ? p.n + ' câu' : '3 lượt với AI'}${p.sec ? ' · ' + p.sec + ' giây mỗi câu' : ''} · ${p.w}%</small></li>`).join('')}</ol>
+        <p class="note">Thắng khi tổng từ ${B.pass} điểm và mỗi phần từ ${B.partMin}. Thua thì ải hồi phục ${B.cooldownHours} giờ. Phần Luận chiến và Ghi nhớ cần AI (${esc(await0())}).</p>
+        ${g && g.ready ? `<button class="btn" type="button" data-bstart ${aiMode === 'claude' || aiMode === 'server' ? '' : 'disabled'}>Vào ải · đồng hồ 2 giờ bắt đầu</button>` : `<p class="status">${g && g.atCeiling ? 'Ải đang hồi phục, thử lại sau ' + hrs(g.cooldown) + '.' : 'Chưa tới bình cảnh: cần ' + (g ? fmt(g.exp - 1) : '') + ' EXP.'}</p>`}</section>`;
+    }
+    const hp = bossHP(b);
+    return `<section class="view narrow boss"><div class="bhead"><span class="eyebrow">Ải tầng núi ${ROMAN[b.stage - 1]} · ${esc(b.name)}</span><span class="btimer big" data-deadline="${b.deadline}">${clock(b.deadline - Date.now())}</span></div>
+      <div class="hp"><span>Thủ quan</span><div class="prog"><i style="width:${hp.toFixed(1)}%"></i></div><b>${hp.toFixed(0)}</b></div>
+      <ol class="bparts">${B.parts.map((p, k) => `<li class="${k < b.part ? 'done' : k === b.part ? 'cur' : ''}"><span class="lv lv${p.d}">${DIFF[p.d]}</span><b>${p.name}</b><small>${k < b.part ? b.scores[k] + ' điểm' : k === b.part ? 'Phần hiện tại' : 'Chờ'}</small></li>`).join('')}</ol>
+      ${b.part < 4 ? `<button class="btn" type="button" data-bpart>Đánh phần ${b.part + 1}: ${B.parts[b.part].name}</button>` : ''}
+      <button class="btn ghost" type="button" data-bgiveup>Bỏ cuộc</button></section>`;
+  }
+  function bossPart() {
+    const b = boss, B = D.realms.boss, k = b.part, sp = b.spec;
+    if (k === 0 || k === 2) { const list = k === 0 ? sp.mcq : sp.mix;
+      test = { kind: 'mix', boss: true, difficulty: B.parts[k].d, title: 'Ải · ' + B.parts[k].name, items: list.map(([id, q]) => ({ ...mcq(D.questions[id][q]), from: id })), i: 0, ok: 0, pick: null, wrong: [], timed: B.parts[k].sec || 0 };
+      sfx('start'); return go({ v: 'test' }); }
+    if (k === 1) return startRecall(sp.recall, { boss: true, title: 'Ải · Ghi nhớ' });
+    const t = D.topics.find(x => x.id === sp.debate.topic);
+    dbt = { t, ci: sp.debate.ci, level: sp.debate.level, claim: t.claims[sp.debate.ci], msgs: [{ role: 'user', content: 'Hãy mở đầu bằng lập luận của bạn cho chủ trương này.' }], phase: 'talk', err: null, busy: false, boss: true };
+    go({ v: 'debate' }); aiTurn();
+  }
+  function bossPartDone(score) {
+    const b = boss; if (!b) return; b.scores[b.part] = score; b.part++; saveBoss();
+    sfx(score >= D.realms.boss.partMin ? 'levelup' : 'wrong');
+    if (b.part >= 4 || Date.now() > b.deadline) return bossFinish(); go({ v: 'boss' });
+  }
+  async function bossFinish() {
+    const b = boss, B = D.realms.boss; b.scores = b.scores.map(x => x || 0); b.done = true; saveBoss();
+    const total = Math.round(b.scores.reduce((a, x, k) => a + x * B.parts[k].w / 100, 0));
+    const win = total >= B.pass && b.scores.every(x => x >= B.partMin) && Date.now() <= b.deadline + 60000;
+    res = await settle({ kind: 'boss', ref: 'stage-' + b.stage, mode: win ? 'boss-pass' : 'boss-fail', difficulty: 4, score: total, wrong: [], detail: { scores: b.scores, minutes: Math.round((Date.now() - b.startedAt) / 60000) } }, verseOf(openLessons()[0]), { v: 'home' });
+    res.title = 'Vượt ải tầng núi ' + ROMAN[b.stage - 1] + (win ? ' · thắng' : ' · chưa qua'); res.bossScores = b.scores; res.again = null;
+    boss = null; try { localStorage.removeItem(BKEY); } catch (e) {}
+    go({ v: 'result' });
+    setTimeout(() => fx.moment(win ? 'full' : 'fail', res.verse, win ? (res.rankUp || { name: res.after.level.name, zh: res.after.level.zh, stage: res.after.stage.name }) : null), 250);
+  }
+  setInterval(() => {
+    document.querySelectorAll('.btimer').forEach(el => { el.textContent = clock(+el.dataset.deadline - Date.now()); });
+    if (boss && !boss.done && Date.now() > boss.deadline && !(dbt && dbt.busy)) { boss.scores = boss.scores.map(x => x || 0); boss.part = 4; bossFinish(); }
+  }, 1000);
+
+  /* ---------- Song đấu (duel): same seeded trial for everyone who holds the code ---------- */
+  let duel = null;
+  const rng = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const sshuffle = (a, r) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = (r() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const DMODES = [['basic', 1, 'Thí luyện căn bản'], ['rootlet', 2, 'Ghi nhớ'], ['mix', 3, 'Hỗn chiến'], ['debate', 4, 'Luận chiến']];
+  const duelUrl = code => location.origin + location.pathname + '?duel=' + code;
+  async function rpc(fn, args) { const { data, error } = await store.sb.rpc(fn, args); if (error) throw { message: error.message }; return data; }
+  function vDuel() {
+    const d = duel || (duel = { phase: 'menu', mode: 'mix', topic: '', err: null });
+    const online = store.mode === 'supabase' && store.user;
+    const head = `<button class="back" type="button" data-go="home">← Núi</button><header class="lessonhead"><span class="eyebrow">Song đấu</span><h1>${d.phase === 'room' ? esc(d.room.title) : 'Mời người khác cùng thí luyện'}</h1></header>`;
+    if (!online) return `<section class="view narrow">${head}<p class="why">Song đấu cần webapp và đăng nhập, vì hai người phải cùng thấy một bộ đề và một bảng điểm. ${store.mode === 'supabase' ? 'Đăng nhập ở trang Núi trước.' : 'Bản xem trước trong Claude chưa hỗ trợ.'}</p></section>`;
+    if (d.phase === 'room') {
+      const r = d.room, me = r.entries.find(e => e.me), top = r.entries[0], tie = r.entries.length > 1 && r.entries[1].score === top.score;
+      return `<section class="view narrow">${head}
+        <div class="duelcode"><span class="eyebrow">Mã trận</span><b>${esc(r.code)}</b><button class="sound" type="button" data-dcopy>Chép link mời</button></div>
+        <p class="why">${esc(DMODES.find(m => m[0] === r.mode)[2])} · cùng một bộ đề cho mọi người · hết hạn ${new Date(r.expires_at).toLocaleDateString('vi-VN')}</p>
+        <ol class="board">${r.entries.length ? r.entries.map((e, k) => `<li class="${e.me ? 'me' : ''} ${k === 0 && r.entries.length > 1 && !tie ? 'win' : ''}"><span>${k + 1}</span><b>${esc(e.name)}${e.me ? ' (bạn)' : ''}</b><em>${e.score}</em></li>`).join('') : '<li><span>·</span><b>Chưa ai đánh</b><em></em></li>'}</ol>
+        ${r.entries.length > 1 ? `<p class="status">${tie ? 'Hoà.' : `<b>${esc(top.name)}</b> thắng.`}</p>` : me ? '<p class="status">Đang chờ đối thủ. Gửi link mời cho họ.</p>' : ''}
+        ${me ? `<button class="btn ghost" type="button" data-drefresh>Tải lại bảng điểm</button>` : `<button class="btn" type="button" data-dplay>Nhận chiến</button>`}
+        ${d.err ? `<p class="status warn">${esc(d.err)}</p>` : ''}</section>`;
+    }
+    const tps = D.topics.filter(topicOpen);
+    return `<section class="view narrow">${head}
+      <p class="why">Tạo một trận, gửi link cho người kia. Cả hai làm cùng một bộ đề; ai điểm cao hơn thắng. Người được mời cần đăng nhập${'' /* AI */}; phần Luận chiến và Ghi nhớ cần email của họ trong ALLOWED_EMAILS.</p>
+      <div class="sec"><span class="eyebrow">Loại thí luyện</span><div class="chips">${DMODES.map(m => `<button type="button" class="chipbtn ${d.mode === m[0] ? 'on' : ''}" data-dmode="${m[0]}">${DIFF[m[1]]} · ${m[2]}</button>`).join('')}</div></div>
+      <div class="sec"><span class="eyebrow">Chủ đề</span><div class="chips">${d.mode === 'mix' ? `<button type="button" class="chipbtn ${!d.topic ? 'on' : ''}" data-dtopic="">Mọi bài đang mở</button>` : ''}${tps.map(t => `<button type="button" class="chipbtn ${d.topic === t.id ? 'on' : ''}" data-dtopic="${t.id}">${esc(t.name)}</button>`).join('')}</div></div>
+      <button class="btn" type="button" data-dcreate>Tạo trận</button>
+      <div class="sec"><span class="eyebrow">Hoặc nhập mã trận</span><div class="save"><form data-djoin><input id="dcode" type="text" maxlength="6" placeholder="VD: 7F3K2A" style="text-transform:uppercase"><button type="submit">Vào</button></form></div></div>
+      ${d.mine && d.mine.length ? `<div class="sec"><span class="eyebrow">Trận gần đây</span><div class="rootlets">${d.mine.map(m => `<button class="rl" type="button" data-dopen="${esc(m.code)}"><span>${esc(m.title)}</span><em>${esc(m.code)}</em></button>`).join('')}</div></div>` : ''}
+      ${d.err ? `<p class="status warn">${esc(d.err)}</p>` : ''}</section>`;
+  }
+  function duelSpec(mode, topicId) {
+    const seed = (Math.random() * 2 ** 31) | 0, t = D.topics.find(x => x.id === topicId);
+    if (mode === 'debate') { const tt = t || D.topics.filter(topicOpen)[0]; return { title: 'Luận chiến · ' + tt.name, spec: { seed, topic: tt.id, ci: seed % tt.claims.length, level: 2 } }; }
+    if (mode === 'rootlet') { const tt = t || D.topics.filter(topicOpen)[0], qa = shuffle(openRootletsOf(tt).flatMap(r => D.rootlets[r].qa)).slice(0, 6); return { title: 'Ghi nhớ · ' + tt.name, spec: { seed, qa } }; }
+    const ids = (t ? t.lessons : Object.keys(D.lessons)).filter(isOpen);
+    const qs = shuffle(ids.flatMap(id => (D.questions[id] || []).map((q, k) => [id, k]))).slice(0, mode === 'basic' ? 8 : 10);
+    return { title: (mode === 'basic' ? 'Căn bản · ' : 'Hỗn chiến · ') + (t ? t.name : 'mọi bài đang mở'), spec: { seed, q: qs, sec: mode === 'mix' ? 25 : 0 } };
+  }
+  async function duelOpen(code) { try { const r = await rpc('get_duel', { p_code: code.toUpperCase() }); if (!r) throw { message: 'Không tìm thấy trận ' + code + '.' }; duel = { phase: 'room', room: r, err: null }; } catch (e) { duel = { ...(duel || { phase: 'menu', mode: 'mix', topic: '' }), err: e.message }; } go({ v: 'duel' }); }
+  function duelPlay() {
+    const r = duel.room, sp = r.spec, R = rng(sp.seed || 1);
+    if (r.mode === 'debate') { const t = D.topics.find(x => x.id === sp.topic); dbt = { t, ci: sp.ci, level: sp.level, claim: t.claims[sp.ci], msgs: [{ role: 'user', content: 'Hãy mở đầu bằng lập luận của bạn cho chủ trương này.' }], phase: 'talk', err: null, busy: false, duel: true }; go({ v: 'debate' }); return aiTurn(); }
+    if (r.mode === 'rootlet') return startRecall(sp.qa, { duel: true, title: 'Song đấu · ' + r.title });
+    test = { kind: 'mix', duel: true, difficulty: r.mode === 'basic' ? 1 : 3, title: 'Song đấu · ' + r.title, items: sp.q.map(([id, k]) => { const q = D.questions[id][k]; return { q: q[0], right: q[1], opts: sshuffle(q.slice(1, 5), R), src: q[5], from: id }; }), i: 0, ok: 0, pick: null, wrong: [], timed: sp.sec || 0 };
+    sfx('start'); go({ v: 'test' });
+  }
+  async function duelDone(score, extra) {
+    const r = duel.room, kind = { basic: 'mix', rootlet: 'rootlet', mix: 'mix', debate: 'debate' }[r.mode], d = { basic: 1, rootlet: 2, mix: 3, debate: 4 }[r.mode];
+    await settle({ kind, ref: 'duel-' + r.code, mode: 'duel', difficulty: d, score, correct: extra.correct || 0, total: extra.total || 0, wrong: [], detail: { duel: r.code, judge: extra.judge || null } }, null, null);
+    try { duel.room = await rpc('submit_duel', { p_code: r.code, p_name: (store.user.email || 'Đạo hữu').split('@')[0], p_score: score, p_detail: extra.judge ? { judge: extra.judge } : {} }); } catch (e) { duel.err = e.message; }
+    duel.phase = 'room'; go({ v: 'duel' });
+    const meWin = duel.room.entries.length > 1 && duel.room.entries[0].me; setTimeout(() => fx.moment(meWin ? 'pass' : score >= PASS ? 'pass' : 'fail', null, null), 250);
+  }
+
   /* ---------- events ---------- */
   function bind() {
     const a = $('#app'), on = (sel, fn) => a.querySelectorAll(sel).forEach(b => (b.onclick = () => fn(b)));
@@ -363,8 +542,8 @@ Tiêu chí: goc_re = có đi tới nguyên nhân gốc không; logic = lập lu�
     on('[data-test]', b => { sfx('start'); startTest(b.dataset.test); });
     on('[data-self]', b => { sfx('start'); startSelf(b.dataset.self); });
     on('[data-sound]', b => { CKL.sfx.setOn(!CKL.sfx.on); b.setAttribute('aria-pressed', CKL.sfx.on); b.textContent = 'Âm thanh · ' + (CKL.sfx.on ? 'Bật' : 'Tắt'); if (CKL.sfx.on) sfx('tap'); });
-    on('[data-ambient]', b => { CKL.sfx.setAmbient(!CKL.sfx.ambient); b.setAttribute('aria-pressed', CKL.sfx.ambient); b.textContent = 'Linh khí 40 Hz · ' + (CKL.sfx.ambient ? 'Bật' : 'Tắt'); });
-    on('[data-quit]', () => go(test.kind === 'lesson' ? { v: 'lesson', id: test.id } : test.kind === 'rootlet' ? { v: 'rootlet', t: test.id } : { v: 'home' }));
+    on('[data-ambient]', b => { CKL.sfx.setAmbient(!CKL.sfx.ambient); b.setAttribute('aria-pressed', CKL.sfx.ambient); b.textContent = 'Linh khí · ' + (CKL.sfx.ambient ? 'Bật' : 'Tắt'); });
+    on('[data-quit]', () => test.boss ? bossPartDone(Math.round(test.ok / test.items.length * 100)) : test.duel ? go({ v: 'duel' }) : go(test.kind === 'lesson' ? { v: 'lesson', id: test.id } : test.kind === 'rootlet' ? { v: 'rootlet', t: test.id } : { v: 'home' }));
     on('[data-opt]', b => answer(+b.dataset.opt));
     on('[data-next]', () => { test.pick = null; if (++test.i < test.items.length) render(); else finish(); });
     on('[data-flip]', () => { test.flip = true; render(); });
@@ -376,15 +555,37 @@ Tiêu chí: goc_re = có đi tới nguyên nhân gốc không; logic = lập lu�
     on('[data-dstart]', () => { if (!(aiMode === 'claude' || aiMode === 'server')) { dbt.err = await0(); return render(); } sfx('start'); dbt.claim = dbt.t.claims[dbt.ci]; dbt.phase = 'talk'; dbt.msgs = [{ role: 'user', content: 'Hãy mở đầu bằng lập luận của bạn cho chủ trương này.' }]; aiTurn(); });
     on('[data-dsend]', () => { const v = ($('#reply') || {}).value || ''; if (v.trim().length < 15) { dbt.err = 'Viết phản bác cụ thể hơn (ít nhất 15 ký tự).'; return render(); } dbt.msgs.push({ role: 'user', content: v.trim() }); sfx('answer', { i: dbt.msgs.filter(m => m.role === 'user').length - 2, n: 3, ok: true }); if (dbt.msgs.filter(m => m.role === 'user').length - 1 >= 3) judgeDebate(); else aiTurn(); });
     on('[data-djudge]', () => judgeDebate());
-    on('[data-dquit]', () => go({ v: 'topic', t: dbt.t.id }));
+    on('[data-dquit]', () => dbt.boss ? bossPartDone(0) : dbt.duel ? go({ v: 'duel' }) : go({ v: 'topic', t: dbt.t.id }));
     on('[data-dailygo]', () => sendDaily());
     on('[data-dailyself]', () => selfDaily());
     a.querySelectorAll('[data-selfc]').forEach(c => (c.onchange = () => { day.self[+c.dataset.selfc] = c.checked; }));
+    on('[data-boss]', () => go({ v: 'boss' }));
+    on('[data-bstart]', () => startBoss());
+    on('[data-bpart]', () => bossPart());
+    on('[data-bgiveup]', () => { if (boss) { boss.scores = boss.scores.map(x => x || 0); boss.part = 4; bossFinish(); } });
+    on('[data-rnext]', () => { rc.items[rc.i].ans = ($('#rans') || {}).value || ''; if (++rc.i < rc.items.length) render(); else { rc.i = rc.items.length - 1; recallSubmit(); } });
+    on('[data-rself]', b => { const [k, v] = b.dataset.rself.split(':').map(Number); rc.items[k].self = v; render(); });
+    on('[data-rdone]', () => recallScore(Math.round(rc.items.reduce((a, x) => a + (x.self || 0), 0) / (2 * rc.items.length) * 100)));
+    on('[data-rquit]', () => { if (rc.boss) recallScore(Math.round(rc.items.slice(0, rc.i).filter(x => x.ans.trim()).length / rc.items.length * 50)); else go({ v: 'duel' }); });
+    on('[data-dmode]', b => { duel.mode = b.dataset.dmode; if (duel.mode !== 'mix' && !duel.topic) duel.topic = (D.topics.find(topicOpen) || {}).id || ''; render(); });
+    on('[data-dtopic]', b => { duel.topic = b.dataset.dtopic; render(); });
+    on('[data-dcreate]', async () => { try { const { title, spec } = duelSpec(duel.mode, duel.topic); const code = await rpc('create_duel', { p_mode: duel.mode, p_title: title, p_spec: spec }); await duelOpen(code); } catch (e) { duel.err = e.message; render(); } });
+    on('[data-dopen]', b => duelOpen(b.dataset.dopen));
+    on('[data-dplay]', () => duelPlay());
+    on('[data-drefresh]', () => duelOpen(duel.room.code));
+    on('[data-dcopy]', b => { const u = duelUrl(duel.room.code); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => (b.textContent = 'Đã chép link'), () => (b.textContent = u)); });
+    const dj = a.querySelector('[data-djoin]'); if (dj) dj.onsubmit = e => { e.preventDefault(); const c = ($('#dcode') || {}).value || ''; if (c.trim()) duelOpen(c.trim()); };
     on('[data-signout]', () => store.signOut());
     const f = a.querySelector('[data-signin]'); if (f) f.onsubmit = async e => { e.preventDefault(); const m = a.querySelector('[data-msg]'); const r = await store.signIn(a.querySelector('#email').value); m.textContent = r.error ? 'Không gửi được: ' + r.error : 'Đã gửi link đăng nhập. Mở email trên máy này để vào.'; };
   }
 
   render();
-  store.init().then(() => { ai.mode().then(m => { aiMode = m; }); render(); });
+  store.init().then(() => {
+    ai.mode().then(m => { aiMode = m; if (['boss', 'debate', 'daily', 'recall'].includes(route.v)) render(); });
+    if (CKL.sfx && CKL.sfx.setMusic) CKL.sfx.setMusic(() => store.musicUrl());
+    const code = new URLSearchParams(location.search).get('duel');
+    if (code && store.mode === 'supabase' && store.user) duelOpen(code); else if (code) { duel = { phase: 'menu', mode: 'mix', topic: '', err: 'Đăng nhập rồi nhập mã ' + code + ' để vào trận.' }; }
+    else if (boss && !boss.done) go({ v: 'boss' }); else render();
+  });
   if (document.fonts) document.fonts.ready.then(() => { if (route.v === 'home') render(); });
 })();

@@ -271,7 +271,7 @@ svg :focus{outline:none}
 .libline{grid-area:lib;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;align-items:center;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;cursor:pointer}
 .libline .eyebrow{grid-column:1}.libline span:nth-child(2){grid-column:1;font-size:13px;color:var(--soft)}
 .libline .go{grid-column:2;grid-row:1 / span 2;font-size:11px;letter-spacing:.22em;text-transform:uppercase;border-bottom:1px solid var(--paper);padding-bottom:2px}
-.climb{grid-template-areas:"hero" "cont" "tree" "modes" "lib" "foot"}
+.climb{grid-template-areas:"hero" "gate" "cont" "tree" "modes" "lib" "duel" "foot"}
 .mtwrap{gap:6px}
 #mountain{display:block;width:100%;height:auto;max-height:82vh;overflow:visible}
 .mt-trail{fill:none;stroke:var(--paper);stroke-opacity:.3;stroke-width:1.1;stroke-dasharray:1.5 5;stroke-linecap:round}
@@ -295,7 +295,7 @@ svg :focus{outline:none}
 .mt-cap b{font-family:var(--f-display);font-weight:500;font-size:14px;color:var(--paper)}
 .mt-cap span{font-family:var(--f-glyph);letter-spacing:.15em}
 @media (min-width:960px){
-  .climb{grid-template-rows:auto auto auto auto 1fr;grid-template-areas:"hero tree" "cont tree" "modes tree" "lib tree" "foot tree"}
+  .climb{grid-template-rows:auto auto auto auto auto auto 1fr;grid-template-areas:"hero tree" "gate tree" "cont tree" "modes tree" "lib tree" "duel tree" "foot tree"}
   #mountain{max-height:calc(100vh - 120px)}
 }
 .libcols{display:grid;gap:30px}
@@ -325,3 +325,33 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;f
 .bt-zh{font-family:var(--f-glyph);font-size:22px;color:var(--soft);letter-spacing:.3em}
 .btn[disabled]{opacity:.45;cursor:default}
 .l-aside .btn.ghost.cta{min-height:46px}
+
+/* ---------- v0.5 · Vượt ải, khoá Tàng Kinh Các, song đấu ---------- */
+.lrow.locked,.rl.locked{cursor:default;opacity:.45}
+.lrow.locked:hover{background:none}
+.cont.gate{border-color:var(--paper);background:linear-gradient(120deg,rgba(255,255,255,.08),rgba(255,255,255,.015))}
+.cont.gate strong{font-size:calc(var(--t-title) + 1px)}
+.bhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.btimer{font-family:var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:.04em;color:var(--paper)}
+.btimer.big{font-size:30px;font-weight:500}
+.bstrip{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+.bstrip .btimer{font-size:13px;letter-spacing:.06em}
+.hp{display:grid;grid-template-columns:auto minmax(0,1fr) 36px;gap:12px;align-items:center;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+.hp .prog{height:2px}.hp .prog i{height:3px;top:-1px}
+.hp b{font-family:var(--f-display);font-size:18px;letter-spacing:0;color:var(--paper);text-align:right}
+.bparts{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.bparts li{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:14px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line);color:var(--mute)}
+.bparts b{font-family:var(--f-display);font-weight:500;font-size:16.5px;color:var(--soft)}
+.bparts small{font-size:12px;font-variant-numeric:tabular-nums}
+.bparts li.cur b{color:var(--light)}.bparts li.cur{color:var(--paper)}
+.bparts li.done b{color:var(--paper)}
+.duelcode{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.duelcode b{font-family:var(--f-display);font-weight:500;font-size:34px;letter-spacing:.14em}
+.board{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.board li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line);color:var(--soft)}
+.board b{font-weight:500}.board em{font-style:normal;font-family:var(--f-display);font-size:22px;color:var(--paper)}
+.board li.win b,.board li.win em{color:var(--light);text-shadow:0 0 14px rgba(255,255,255,.5)}
+.board li.me span{color:var(--paper)}
+.duelline{margin-top:-1px}
+
+.cont.gate{grid-area:gate}.duelline{grid-area:duel}

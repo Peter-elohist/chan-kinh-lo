@@ -66,6 +66,13 @@
   async function signOut() { if (sb) await sb.auth.signOut(); }
   async function token() { if (!sb) return null; const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : null; }
 
-  Object.assign(S, { init, record, signIn, signOut, token, get supabaseReady() { return !!sb; } });
+  /* Where the Linh khí music lives: the preview's own asset, a private Supabase bucket, or a local file. */
+  async function musicUrl() {
+    if (window.CKL_MUSIC_URL) return window.CKL_MUSIC_URL;
+    if (sb && S.user) { const { data } = await sb.storage.from('media').createSignedUrl('linh-khi.m4a', 6 * 3600); if (data && data.signedUrl) return data.signedUrl; }
+    try { const r = await fetch('assets/music/linh-khi.m4a', { method: 'HEAD' }); if (r.ok) return 'assets/music/linh-khi.m4a'; } catch (e) {}
+    return null;
+  }
+  Object.assign(S, { init, record, signIn, signOut, token, musicUrl, get sb() { return sb; }, get supabaseReady() { return !!sb; } });
   CKL.store = S;
 })();

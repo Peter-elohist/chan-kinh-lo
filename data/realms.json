@@ -4,25 +4,34 @@
    "n": 1,
    "name": "Nhập Môn",
    "level": "Sơ cấp",
-   "g": "壹"
+   "g": "壹",
+   "ea": 10,
+   "unlock": "EA 1–10"
   },
   {
    "n": 2,
    "name": "Thành Thục",
    "level": "Trung cấp",
-   "g": "贰"
+   "g": "贰",
+   "ea": 30,
+   "unlock": "EA 1–30"
   },
   {
    "n": 3,
    "name": "Cao Thủ",
    "level": "Cao cấp",
-   "g": "叁"
+   "g": "叁",
+   "ea": 50,
+   "unlock": "Toàn bộ 50 bài EA"
   },
   {
    "n": 4,
    "name": "Tông Sư · Huyền Thoại",
    "level": "Tuyệt đỉnh",
-   "g": "肆"
+   "g": "肆",
+   "ea": 50,
+   "vault": true,
+   "unlock": "Toàn bộ kiến thức trong Vault"
   }
  ],
  "levels": [
@@ -152,5 +161,43 @@
   "perfectBonus": 1.25,
   "failFactor": 0.15,
   "passScore": 50
+ },
+ "boss": {
+  "minutes": 120,
+  "pass": 80,
+  "partMin": 60,
+  "cooldownHours": 24,
+  "reward": 150,
+  "note": "Mỗi tầng núi có một bình cảnh. Đạt tới đỉnh tầng thì EXP dừng lại cho tới khi vượt ải: 2 giờ, đủ 4 loại thí luyện, kiến thức gộp từ tầng 1 tới tầng hiện tại.",
+  "parts": [
+   {
+    "key": "mcq",
+    "d": 1,
+    "name": "Trắc nghiệm",
+    "n": 20,
+    "w": 25
+   },
+   {
+    "key": "recall",
+    "d": 2,
+    "name": "Ghi nhớ",
+    "n": 10,
+    "w": 25
+   },
+   {
+    "key": "mix",
+    "d": 3,
+    "name": "Hỗn chiến",
+    "n": 15,
+    "sec": 20,
+    "w": 25
+   },
+   {
+    "key": "debate",
+    "d": 4,
+    "name": "Luận chiến",
+    "w": 25
+   }
+  ]
  }
 }

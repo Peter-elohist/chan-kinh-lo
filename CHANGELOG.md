@@ -1,5 +1,13 @@
 # Nhật ký phiên bản
 
+## v0.5.0 · 2026-10-14
+
+- Bình cảnh và vượt ải: mỗi tầng núi có trần EXP. Tới đỉnh tầng thì EXP dừng lại cho tới khi đánh thắng ải: 2 giờ, đủ 4 phần (20 câu trắc nghiệm, 10 câu ghi nhớ tự viết do AI chấm, 15 câu hỗn chiến 20 giây, 1 trận luận chiến), kiến thức gộp từ tầng 1 tới tầng hiện tại. Thắng khi tổng từ 80 và mỗi phần từ 60: +150 EXP, lên tầng núi mới. Thua: ải hồi phục 24 giờ. Đang đánh dở thì tải lại trang vẫn tiếp tục.
+- Tàng Kinh Các mở theo tầng núi: I mở EA 1–10, II mở EA 1–30, III mở đủ 50 bài, IV mở toàn bộ Vault. Thí luyện chỉ rút đề từ phần đã mở. Bài EA giờ đánh số 1–50.
+- Linh khí: thay nhạc 40 Hz bằng bản nhạc riêng (đoạn 25 phút, vòng lặp có fade). Tệp nhạc không lên git; bản xem trước dùng tài sản riêng của trang, webapp đọc từ bucket riêng tư `media` của Supabase. Còn giữ nhạc tổng hợp làm dự phòng.
+- Song đấu: tạo trận cho 1 trong 4 loại thí luyện, gửi link có mã; mọi người cùng một bộ đề (gieo hạt ngẫu nhiên chung), điểm đầu tiên là điểm chốt, bảng xếp hạng phân thắng thua. Chạy trên webapp khi đăng nhập.
+- Supabase 0003: kind 'boss', bảng duels và duel_entries (đọc chung qua hàm cần mã trận), bucket media.
+
 ## v0.4.0 · 2026-10-14
 
 - Hệ thống tu luyện mới: 14 cảnh giới trong 4 giai đoạn (Nhập Môn, Thành Thục, Cao Thủ, Tông Sư · Huyền Thoại), từ Sơ Học Sạ Luyện tới Thiên Nhân Hợp Nhất. `data/realms.json`.

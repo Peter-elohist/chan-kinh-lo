@@ -46,6 +46,14 @@ Trong bản xem trước Claude, AI dùng quyền "sample" của trang. Trên we
 - `ANTHROPIC_API_KEY`: khoá API từ console.anthropic.com.
 - `ALLOWED_EMAILS`: email được phép dùng AI, cách nhau dấu phẩy.
 
+## Nhạc Linh khí
+
+Tệp `assets/music/linh-khi.m4a` không lên git. Trên webapp, tải tệp đó lên Supabase → Storage → bucket `media` (riêng tư, chỉ người đăng nhập đọc được).
+
+## Song đấu
+
+Người được mời đăng nhập bằng email của họ. Muốn họ đánh được Luận chiến và Ghi nhớ (cần AI), thêm email của họ vào secret `ALLOWED_EMAILS`.
+
 ## Supabase (lưu điểm)
 
 1. Tạo project trên supabase.com.

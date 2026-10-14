@@ -6,3 +6,7 @@ dist/
 # Ảnh tham khảo (Pinterest, ảnh chụp) chỉ để xem, không đưa lên git vì không có quyền dùng lại
 assets/refs/*
 !assets/refs/README.md
+
+# Nhạc linh khí là tệp riêng, không đưa lên repo công khai
+assets/music/*
+!assets/music/README.md

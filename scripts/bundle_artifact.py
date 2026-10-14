@@ -31,6 +31,9 @@ html = html.replace('<link rel="stylesheet" href="src/styles.css">', "<style>\n"
 html = re.sub(r'<script src="src/config.js"></script>\s*', "", html)
 html = re.sub(r'<script src="https://cdn.jsdelivr.net/npm/@supabase[^"]*"></script>\s*', "", html)
 data_js = "window.CKL_DATA=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
+import os
+if os.environ.get("CKL_MUSIC_URL"):  # the preview's private music asset
+    data_js += "window.CKL_MUSIC_URL=" + json.dumps(os.environ["CKL_MUSIC_URL"]) + ";"
 html = html.replace('<script src="src/sound.js"></script>', "<script>" + safe(data_js) + "</script>\n<script src=\"src/sound.js\"></script>")
 html = html.replace('<script src="src/fx.js"></script>', "<script>" + safe(read("src/fx.js")) + "</script>")
 for f in ("sound", "exp", "mountain", "store", "ai", "app"):

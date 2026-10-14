@@ -16,7 +16,7 @@
      rank     realm breakthrough                    (deep energy rise → deep chime → shimmer crown)
      levelup  skill upgrade (for Cành, later)       (shimmer converges → opens into a chime)
      fail     trial not passed                      (descending breath, low bowl)
-   Ambient "linh khí": a 40 Hz breathing drone with a stream and jade chimes, optional, very low. */
+   Ambient "linh khí": the user's own music track (assets/music or a private Supabase bucket); the 40 Hz drone below is the fallback. */
 (function () {
   const CKL = (window.CKL = window.CKL || {});
   const KEY = 'ckl-sound', AKEY = 'ckl-ambient';
@@ -204,7 +204,7 @@
   /* Linh khí · "Mindstream 40 Hz" style: a slow pentatonic drone that breathes at 40 Hz (soft isochronic pulse),
      a 200/240 Hz binaural pair (a 40 Hz beat with headphones), a quiet stream and an occasional jade chime. */
   const CHORDS = [[146.83, 220, 329.63, 440], [123.47, 185, 293.66, 440], [164.81, 246.94, 369.99, 493.88], [146.83, 220, 293.66, 369.99]];
-  function ambientStart() {
+  function synthStart() {
     if (!ctx || ambNode) return; const t0 = T();
     const g = ctx.createGain(), w = ctx.createGain(); g.connect(dry); w.connect(wet); g._w = w; g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(1, t0 + 5);
     // Pad bus with 40 Hz amplitude breathing.
@@ -227,7 +227,7 @@
     const chimeTick = () => { if (!ambNode) return; if (!document.hidden) jade(note(12 + ((Math.random() * 6) | 0)), T(), { gain: rnd(0.012, 0.025), len: 3.2, pan: rnd(-0.7, 0.7), bus: g }); ambNode.chimeT = setTimeout(chimeTick, rnd(7000, 14000)); };
     ambNode = { g, srcs: [am, lfo, n, sl, ...bins] }; chord(); ambNode.chimeT = setTimeout(chimeTick, 4000);
   }
-  function ambientStop() { if (!ambNode) return; const a = ambNode; ambNode = null; clearTimeout(a.chordT); clearTimeout(a.chimeT); a.g.gain.cancelScheduledValues(T()); a.g.gain.setValueAtTime(a.g.gain.value, T()); a.g.gain.linearRampToValueAtTime(0.0001, T(1.5)); setTimeout(() => { try { a.srcs.forEach(x => x.stop()); a.g.disconnect(); a.g._w.disconnect(); } catch (e) {} }, 1700); }
+  function synthStop() { if (!ambNode) return; const a = ambNode; ambNode = null; clearTimeout(a.chordT); clearTimeout(a.chimeT); a.g.gain.cancelScheduledValues(T()); a.g.gain.setValueAtTime(a.g.gain.value, T()); a.g.gain.linearRampToValueAtTime(0.0001, T(1.5)); setTimeout(() => { try { a.srcs.forEach(x => x.stop()); a.g.disconnect(); a.g._w.disconnect(); } catch (e) {} }, 1700); }
 
   function play(name, o) {
     if (!on || !boot()) return;
@@ -237,8 +237,27 @@
     } catch (e) { console.warn('sound', e); }
   }
   function save(k, v) { try { localStorage.setItem(k, v ? 'on' : 'off'); } catch (e) {} }
+  /* Linh khí music: the user's own track, streamed and looped through the shared hall at low volume.
+     Falls back to the synthesised drone when no music file is available. */
+  let musicSrc = null, music = null;
+  function setMusic(fn) { musicSrc = fn; if (amb && on && ctx) { synthStop(); ambientStart(); } }
+  async function ambientStart() {
+    if (!ctx) return;
+    if (music) { music.el.play().catch(() => {}); fadeMusic(1, 3); return; }
+    const url = musicSrc ? await musicSrc().catch(() => null) : null;
+    if (!url) return synthStart();
+    if (!amb || !on) return;
+    const el = new Audio(); el.crossOrigin = 'anonymous'; el.loop = true; el.preload = 'auto'; el.src = url;
+    const node = ctx.createMediaElementSource(el), g = ctx.createGain(); g.gain.value = 0.0001; node.connect(g).connect(master);
+    music = { el, g }; el.play().then(() => fadeMusic(1, 4)).catch(() => {});
+  }
+  function fadeMusic(to, sec) { if (!music) return; const g = music.g.gain; g.cancelScheduledValues(T()); g.setValueAtTime(Math.max(0.0001, g.value), T()); g.linearRampToValueAtTime(to ? 0.32 : 0.0001, T(sec)); }
+  function ambientStop() {
+    synthStop();
+    if (music) { fadeMusic(0, 1.5); const m = music; setTimeout(() => { if (!amb || !on) m.el.pause(); }, 1600); }
+  }
   function setOn(v) { on = !!v; save(KEY, on); if (!on) { stop(0.2); ambientStop(); } else if (boot() && amb) ambientStart(); }
   function setAmbient(v) { amb = !!v; save(AKEY, amb); if (amb && on && boot()) ambientStart(); else ambientStop(); }
-  document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else if (on) ctx.resume(); });
-  CKL.sfx = { play, stop, setOn, setAmbient, get on() { return on; }, get ambient() { return amb; } };
+  document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) { ctx.suspend(); if (music) music.el.pause(); } else if (on) { ctx.resume(); if (music && amb) music.el.play().catch(() => {}); } });
+  CKL.sfx = { play, stop, setOn, setAmbient, setMusic, get on() { return on; }, get ambient() { return amb; } };
 })();
