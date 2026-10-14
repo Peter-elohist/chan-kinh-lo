@@ -1,0 +1,37 @@
+{
+ "note": "Cành · Công sở. Chưa dựng giao diện; giữ ở đây để làm bước sau. Bằng chứng là điều kiện lên cấp 3.",
+ "levels": ["Có hướng dẫn", "Tự làm", "Xử lý ngoại lệ", "Truyền thụ"],
+ "branches": [
+  {"id": "cc", "glyph": "器", "name": "Công cụ số", "skills": [
+   ["Lark: chấm công, phê duyệt, Base", "Tự xử lý lỗi chấm công và quy tắc ngoại lệ cho cả phòng"],
+   ["Odoo ERP", "Sửa được quy trình hoặc báo cáo khi nghiệp vụ thay đổi"],
+   ["Bảng tính và dữ liệu", "Bảng có công thức, pivot mà người khác dùng hằng tuần"],
+   ["Trợ lý AI", "Một quy trình AI tiết kiệm từ 2 giờ mỗi tuần, đo được"]]},
+  {"id": "gt", "glyph": "言", "name": "Giao tiếp", "skills": [
+   ["Lắng nghe chủ động", "Người nói xác nhận bạn tóm tắt đúng ý và cảm xúc"],
+   ["Viết email, báo cáo", "Báo cáo được duyệt không phải sửa lần hai"],
+   ["Trình bày", "Trình bày 10 phút, người nghe nhắc lại đúng 3 ý chính"],
+   ["Phản hồi, xử lý bất đồng", "Giải quyết một bất đồng, hai bên cùng đồng ý"]]},
+  {"id": "hs", "glyph": "勤", "name": "Hiệu suất", "skills": [
+   ["Lập kế hoạch, ưu tiên", "4 tuần liền hoàn thành 80% việc đã lên kế hoạch"],
+   ["Làm việc sâu", "10 giờ làm việc sâu mỗi tuần, 4 tuần liền"],
+   ["Thói quen", "Giữ một thói quen mới 66 ngày"],
+   ["Quản lý tri thức", "Tìm lại bất kỳ ghi chú trong Brain trong 1 phút"]]},
+  {"id": "gq", "glyph": "解", "name": "Giải quyết vấn đề", "skills": [
+   ["Phân tích nguyên lý gốc", "Một trang phân tích nguyên nhân gốc được cấp trên dùng"],
+   ["Ra quyết định", "Xem lại sau 1 tháng, 70% quyết định là đúng"],
+   ["Cải tiến quy trình", "Một quy trình rút ngắn thời gian, có số đo trước và sau"],
+   ["Quản lý dự án", "Một dự án nhiều người xong đúng hạn"]]},
+  {"id": "ld", "glyph": "领", "name": "Lãnh đạo, phục vụ", "skills": [
+   ["Khiêm nhường, tôn trọng", "Đồng nghiệp đánh giá ẩn danh từ 4/5 về sự tôn trọng"],
+   ["Đào tạo người khác", "Một người bạn đào tạo tự làm được"],
+   ["Điều phối nhóm", "Nhóm từ 3 người hoàn thành mục tiêu chung"],
+   ["Truyền đạo công sở", "Đi hết 8 bước với một người"]]},
+  {"id": "bd", "glyph": "商", "name": "Phát triển kinh doanh", "skills": [
+   ["Nghiên cứu thị trường, khách hàng", "Một bản phân tích khách hàng mục tiêu được dùng để chọn hướng bán"],
+   ["Tìm và tiếp cận khách hàng mới", "Tự tạo 10 cuộc hẹn chất lượng trong một tháng"],
+   ["Đề xuất giá trị, viết proposal", "Một proposal được khách chấp nhận không phải viết lại"],
+   ["Đàm phán, chốt hợp đồng", "Chốt một hợp đồng giữ được biên lợi nhuận đã đặt"],
+   ["Xây dựng đối tác, quản lý pipeline", "Pipeline cập nhật hằng tuần, dự báo doanh số lệch dưới 20%"]]}
+ ]
+}
