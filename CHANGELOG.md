@@ -1,5 +1,13 @@
 # Nhật ký phiên bản
 
+## v0.2.0 · 2026-10-14
+
+- Âm thanh huyền nhiệm: tổng hợp bằng Web Audio theo ba lớp gió → lấp lánh pha lê → chuông ngân; mỗi trạng thái một âm riêng (chạm, mở tầng, đúng, sai, thông quan, viên mãn, đột phá, nâng cấp, chưa đạt). Thêm "Linh khí" (gió và chuông tre nền, tắt mặc định). Có thể thay bằng tệp thu sẵn qua `assets/sfx/manifest.json`.
+- Phông chữ tiếng Việt: Noto Serif Display cho tiêu đề, Noto Serif cho câu văn, Be Vietnam Pro cho giao diện; chữ thư pháp chỉ dùng cho chữ Hán.
+- Chạm vào ấn tầng: bỏ khung chữ nhật (viền focus), thay bằng ấn lún nhẹ, gợn mực và chuyển cảnh dịu.
+- Viên mãn: cột sáng hội tụ rồi bung ra, thẻ tre có chữ mực bay theo chiều sâu (gần rõ, xa mờ, lật mặt), câu Kinh Thánh và chú thích xếp dọc không còn chồng chữ, kết thúc mờ dần.
+- Hiệu năng: mọi ánh sáng, sương, cột chữ, thẻ tre vẽ sẵn thành sprite; nền tạm dừng khi có hoạt cảnh. Đo được 60 khung hình/giây ổn định.
+
 ## v0.1.0 · 2026-10-14
 
 Bản đầu tiên đưa lên GitHub.

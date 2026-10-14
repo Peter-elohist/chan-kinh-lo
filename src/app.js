@@ -1,6 +1,7 @@
 /* Chân Kinh Lộ · app: Gốc Lẽ Thật (tree, tiers, lessons, rootlets, trials). */
 (async function () {
   const CKL = window.CKL; const fx = CKL.fx; const store = CKL.store; const RM = fx.reduced;
+  const sfx = (n, o) => CKL.sfx && CKL.sfx.play(n, o);
   const $ = s => document.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const PASS = 80;
@@ -31,6 +32,12 @@
   /* ---------- routing ---------- */
   let route = { v: 'goc' }, test = null;
   function go(r) { route = r; render(); scrollTo({ top: 0, behavior: RM ? 'auto' : 'smooth' }); }
+  /* Leave the current view by easing toward the point that was tapped, then enter the next. */
+  function goFrom(r, x, y) {
+    const a = $('#app'); if (RM) return go(r);
+    const b = a.getBoundingClientRect(); a.style.transformOrigin = (x - b.left) + 'px ' + (y - b.top) + 'px'; a.classList.add('leave');
+    setTimeout(() => { a.classList.remove('leave'); a.style.transformOrigin = ''; go(r); }, 340);
+  }
   function render() {
     const a = $('#app'); const v = route.v;
     a.innerHTML = v === 'goc' ? vGoc() : v === 'tier' ? vTier(route.n) : v === 'lesson' ? vLesson(route.id) : v === 'rootlet' ? vRootlet(route.t) : v === 'test' ? vTest() : vResult();
@@ -48,7 +55,7 @@
     const ls = Object.values(D.lessons), passed = ls.filter(l => (best(l.id) || 0) >= PASS).length;
     const rt = Object.keys(D.rootlets), rp = rt.filter(t => (rbest(t) || 0) >= PASS).length, ri = rankIndex();
     return `<section class="view"><header class="head"><span class="bigglyph glyph" aria-hidden="true">根</span><span class="eyebrow">Chân Kinh Lộ · Gốc Lẽ Thật</span>
-    <h1 class="rank">${esc(rankName())}</h1><span class="meta">${passed}/${ls.length} bài EA thông quan · ${rp}/${rt.length} rễ phụ</span>${saveLine()}</header>
+    <h1 class="rank">${esc(rankName())}</h1><span class="meta">${passed}/${ls.length} bài EA thông quan · ${rp}/${rt.length} rễ phụ</span>${saveLine()}${CKL.sfx ? `<div class="sounds"><button class="sound" type="button" data-sound aria-pressed="${CKL.sfx.on}">Âm thanh · ${CKL.sfx.on ? 'Bật' : 'Tắt'}</button><button class="sound" type="button" data-ambient aria-pressed="${CKL.sfx.ambient}">Linh khí · ${CKL.sfx.ambient ? 'Bật' : 'Tắt'}</button></div>` : ''}</header>
     <div class="treewrap"><svg id="tree" viewBox="0 0 390 740" role="img" aria-label="Cây Gốc Lẽ Thật: 5 tầng EA"></svg></div>
     <div class="ranks" aria-label="Thang cảnh giới">${D.tiers.map((t, i) => `<div class="${i <= ri ? 'on' : ''}"><b>${t.g}</b>${esc(t.rank)}</div>`).join('')}</div>
     <div class="legend"><span><i class="dot d-full"></i>100 điểm</span><span><i class="dot d-pass"></i>Thông quan</span><span><i class="dot d-open"></i>Chưa đạt</span><span><i class="dot d-none"></i>Chưa có ghi chú</span></div>
@@ -84,13 +91,13 @@
       const e = p.getPointAtLength(L), t = D.tiers[i], ls = tierLessons(n), pc = ls.filter(l => (best(l.id) || 0) >= PASS).length;
       const ax = e.x < 120 ? 26 : e.x > 270 ? 364 : e.x, an = e.x < 120 ? 'start' : e.x > 270 ? 'end' : 'middle';
       const ringId = 'ring' + n, rr2 = 37;
-      ex += `<g class="med" data-tier="${n}" tabindex="0" role="button" aria-label="Tầng ${n}, ${esc(t.rank)}, ${pc} trên ${ls.length} bài">
+      ex += `<g class="med" data-tier="${n}" style="transform-box:view-box;transform-origin:${e.x}px ${e.y}px" tabindex="0" role="button" aria-label="Tầng ${n}, ${esc(t.rank)}, ${pc} trên ${ls.length} bài">
         <path id="${ringId}" d="M${e.x - rr2} ${e.y} a${rr2} ${rr2} 0 1 1 ${rr2 * 2} 0 a${rr2} ${rr2} 0 1 1 ${-rr2 * 2} 0" fill="none"/>
         <g class="spin ${n % 2 ? '' : 'rev'}" style="transform-box:view-box;transform-origin:${e.x}px ${e.y}px"><text font-size="7.4" fill="#EFECE3" fill-opacity="${done ? 0.9 : 0.42}" font-family="'Ma Shan Zheng', serif" letter-spacing="1.6"><textPath href="#${ringId}">${esc(tierVerse(n).slice(0, 40))}</textPath></text></g>
         <circle class="medring ${done ? 'lit' : ''}" cx="${e.x}" cy="${e.y}" r="29" fill="#0A0A09" stroke="#EFECE3" stroke-opacity="${done ? 1 : 0.55}" stroke-width="1.2"/>
         <circle cx="${e.x}" cy="${e.y}" r="24" fill="none" stroke="#EFECE3" stroke-opacity=".22"/>
         <text x="${e.x}" y="${e.y + 10}" text-anchor="middle" font-size="28" fill="#fff" font-family="'Ma Shan Zheng', serif" class="${done ? 'lit' : ''}">${t.g}</text>
-        <text x="${ax}" y="${e.y + 56}" text-anchor="${an}" font-size="15" fill="#EFECE3" stroke="#0A0A09" stroke-width="5" paint-order="stroke" font-family="'Cormorant Garamond', serif" font-weight="600">${esc(t.rank)}</text>
+        <text x="${ax}" y="${e.y + 56}" text-anchor="${an}" font-size="15" fill="#EFECE3" stroke="#0A0A09" stroke-width="5" paint-order="stroke" style="font-family:var(--f-display)" font-weight="600">${esc(t.rank)}</text>
         <text x="${ax}" y="${e.y + 71}" text-anchor="${an}" font-size="10" fill="#9A978F" stroke="#0A0A09" stroke-width="4" paint-order="stroke" letter-spacing="1">TẦNG ${n} · ${ls.length ? pc + '/' + ls.length : 'CHƯA CÓ BÀI'}</text></g>`;
     });
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.innerHTML = ex; svg.appendChild(g);
@@ -99,7 +106,16 @@
       g.style.opacity = 0; g.style.transition = 'opacity 1.1s ease 1.5s'; requestAnimationFrame(() => requestAnimationFrame(() => (g.style.opacity = 1)));
       setTimeout(() => { const b = svg.getBoundingClientRect(); fx.burst(b.left + b.width / 2, b.top + b.height * (96 / 740), 24, 120, 1.2, 2); }, 300);
     }
-    svg.querySelectorAll('.med').forEach(m => { const open = ev => { const b = m.getBoundingClientRect(); fx.ring(b.left + b.width / 2, b.top + b.height / 2, 120, 0.6); setTimeout(() => go({ v: 'tier', n: +m.dataset.tier }), RM ? 0 : 220); }; m.onclick = open; m.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } }; });
+    svg.querySelectorAll('.med').forEach(m => {
+      const open = () => {
+        if (m.classList.contains('press')) return;
+        const b = m.querySelector('.medring').getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + b.height / 2;
+        m.classList.add('press'); sfx('open', { n: +m.dataset.tier }); fx.ripple(x, y);
+        setTimeout(() => m.classList.remove('press'), 180);
+        setTimeout(() => goFrom({ v: 'tier', n: +m.dataset.tier }, x, y), RM ? 0 : 160);
+      };
+      m.onclick = open; m.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
+    });
   }
 
   /* ---------- Tier ---------- */
@@ -148,7 +164,7 @@
 
   /* ---------- Trials ---------- */
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  function startTest(id) { const l = D.lessons[id]; test = { kind: 'lesson', id, verse: verseOf(id), title: l.title, items: shuffle(D.questions[id]).map(q => ({ q: q[0], right: q[1], opts: shuffle(q.slice(1, 5)), src: q[5] })), i: 0, ok: 0, pick: null, wrong: [] }; go({ v: 'test' }); }
+  function startTest(id) { const l = D.lessons[id]; const pv = verseOf(id); if (pv) fx.prepare(pv.zh); test = { kind: 'lesson', id, verse: verseOf(id), title: l.title, items: shuffle(D.questions[id]).map(q => ({ q: q[0], right: q[1], opts: shuffle(q.slice(1, 5)), src: q[5] })), i: 0, ok: 0, pick: null, wrong: [] }; go({ v: 'test' }); }
   function startSelf(t) { const r = D.rootlets[t]; test = { kind: 'rootlet', id: t, verse: verseOf(r.lesson), title: t, items: r.qa.map(x => ({ q: x[0], a: x[1] })), i: 0, ok: 0, flip: false, wrong: [] }; go({ v: 'test' }); }
   function vTest() {
     const T = test, it = T.items[T.i], pct = (T.i / T.items.length) * 100;
@@ -170,7 +186,7 @@
   function vResult() {
     const T = test, s = T.score;
     return `<section class="view"><span class="eyebrow">${T.kind === 'lesson' ? 'Kết quả thí luyện' : 'Kết quả tự kiểm tra'} · ${esc(T.title)}</span>
-    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap"><span class="score">${s}</span><span class="verdict glyph">${s >= 100 ? '圆满 Viên mãn' : s >= PASS ? '通 Thông quan' : 'Chưa thông quan'}</span></div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap"><span class="score">${s}</span><span class="verdict">${s >= 100 ? '<span class="glyph" lang="zh-Hans">圆满</span>Viên mãn' : s >= PASS ? '<span class="glyph" lang="zh-Hans">通</span>Thông quan' : 'Chưa thông quan'}</span></div>
     <p class="meta">${T.ok}/${T.items.length} câu đúng · cần từ ${PASS} điểm để thông quan</p>
     ${T.wrong.length ? `<div class="sec"><span class="eyebrow">Ôn lại</span><div class="miss">${T.wrong.map(w => `<div><b>${esc(w.q)}</b>${esc(w.a)}</div>`).join('')}</div></div>` : ''}
     <div class="two"><button class="btn ghost" type="button" data-again>Thử lại</button><button class="btn" type="button" ${T.kind === 'lesson' ? `data-lesson="${T.id}"` : `data-rootlet="${esc(T.id)}"`}>Xong</button></div></section>`;
@@ -180,14 +196,16 @@
   function bind() {
     const a = $('#app'), on = (sel, fn) => a.querySelectorAll(sel).forEach(b => (b.onclick = () => fn(b)));
     on('[data-go]', b => go(b.dataset.go === 'tier' ? { v: 'tier', n: +b.dataset.n } : { v: b.dataset.go }));
-    on('[data-lesson]', b => go({ v: 'lesson', id: b.dataset.lesson }));
+    on('[data-lesson]', b => { if (route.v === 'tier') sfx('lesson'); go({ v: 'lesson', id: b.dataset.lesson }); });
     on('[data-rootlet]', b => go({ v: 'rootlet', t: b.dataset.rootlet }));
-    on('[data-test]', b => startTest(b.dataset.test));
+    on('[data-test]', b => { sfx('start'); startTest(b.dataset.test); });
+    on('[data-sound]', b => { CKL.sfx.setOn(!CKL.sfx.on); b.setAttribute('aria-pressed', CKL.sfx.on); b.textContent = 'Âm thanh · ' + (CKL.sfx.on ? 'Bật' : 'Tắt'); if (CKL.sfx.on) sfx('tap'); });
+    on('[data-ambient]', b => { CKL.sfx.setAmbient(!CKL.sfx.ambient); b.setAttribute('aria-pressed', CKL.sfx.ambient); b.textContent = 'Linh khí · ' + (CKL.sfx.ambient ? 'Bật' : 'Tắt'); });
     on('[data-self]', b => startSelf(b.dataset.self));
     on('[data-quit]', () => go(test.kind === 'lesson' ? { v: 'lesson', id: test.id } : { v: 'rootlet', t: test.id }));
     on('[data-opt]', b => {
       const T = test, it = T.items[T.i]; T.pick = +b.dataset.opt; const right = it.opts[T.pick] === it.right; const r = b.getBoundingClientRect();
-      if (right) { T.ok++; fx.burst(r.left + r.width / 2, r.top + r.height / 2, 28, 170, 0.8, 2); fx.ring(r.left + r.width / 2, r.top + r.height / 2, 110, 0.6); } else T.wrong.push({ q: it.q, a: it.right });
+      if (right) { sfx('right', { i: T.ok }); T.ok++; fx.burst(r.left + r.width / 2, r.top + r.height / 2, 28, 170, 0.8, 2); fx.ring(r.left + r.width / 2, r.top + r.height / 2, 110, 0.6); } else { sfx('wrong'); T.wrong.push({ q: it.q, a: it.right }); }
       render(); if (!right) { const o = $('#opts'); o && o.classList.add('shake'); }
     });
     on('[data-next]', () => { test.pick = null; if (++test.i < test.items.length) render(); else finish(); });

@@ -29,8 +29,9 @@ html = html.replace('<link rel="stylesheet" href="src/styles.css">', "<style>\n"
 html = re.sub(r'<script src="src/config.js"></script>\s*', "", html)
 html = re.sub(r'<script src="https://cdn.jsdelivr.net/npm/@supabase[^"]*"></script>\s*', "", html)
 data_js = "window.CKL_DATA=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
-html = html.replace('<script src="src/fx.js"></script>', "<script>" + safe(data_js) + "</script>\n<script>" + safe(read("src/fx.js")) + "</script>")
-for f in ("store", "app"):
+html = html.replace('<script src="src/sound.js"></script>', "<script>" + safe(data_js) + "</script>\n<script src=\"src/sound.js\"></script>")
+html = html.replace('<script src="src/fx.js"></script>', "<script>" + safe(read("src/fx.js")) + "</script>")
+for f in ("sound", "store", "app"):
     html = html.replace(f'<script src="src/{f}.js"></script>', "<script>" + safe(read(f"src/{f}.js")) + "</script>")
 
 out.parent.mkdir(parents=True, exist_ok=True)
