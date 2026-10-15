@@ -47,12 +47,15 @@
     const a = $('#app'), v = route.v;
     a.innerHTML = v === 'home' ? vHome() : v === 'library' ? vLibrary() : v === 'tier' ? vTier(route.n) : v === 'lesson' ? vLesson(route.id) : v === 'topic' ? vTopic(route.t) : v === 'rootlet' ? vRootlet(route.t)
       : v === 'pick' ? vPick(route.mode) : v === 'test' ? vTest() : v === 'debate' ? vDebate() : v === 'daily' ? vDaily()
-      : v === 'boss' ? vBoss() : v === 'recall' ? vRecall() : v === 'duel' ? vDuel() : vResult();
+      : v === 'boss' ? vBoss() : v === 'recall' ? vRecall() : v === 'duel' ? vDuel() : v === 'profile' ? vProfile() : vResult();
+    if (v === 'test' && test && test.pick === null && test.shownI !== test.i) { test.shownI = test.i; test.shownAt = Date.now(); }
     bind(); if (v === 'home') drawMountain(); if (v === 'test') armTimer();
+    if (v === 'profile') loadProfileData();
     if (v === 'duel' && duel && duel.phase === 'menu' && duel.mine === undefined && store.mode === 'supabase' && store.user) { duel.mine = null; rpc('my_duels', {}).then(m => { duel.mine = m || []; if (route.v === 'duel') render(); }).catch(() => {}); }
     if (v === 'duel' && duel && duel.phase === 'menu' && duel.week === undefined && store.mode === 'supabase' && store.user) { duel.week = null; rpc('duel_week_board', {}).then(w => { duel.week = w; if (route.v === 'duel') render(); }).catch(() => {}); }
   }
-  store.onChange = () => { if (!['test', 'debate', 'daily', 'boss', 'recall', 'duel'].includes(route.v)) render(); };
+  let lastUid = null, prof = { hist: undefined, weak: undefined, msg: '' };
+  store.onChange = () => { const uid = store.user ? store.user.id : null; if (uid !== lastUid) { lastUid = uid; prof = { hist: undefined, weak: undefined, msg: '' }; } if (!['test', 'debate', 'daily', 'boss', 'recall', 'duel'].includes(route.v)) render(); };
   DESKTOP.addEventListener('change', () => { if (route.v === 'home') render(); });
 
   /* ---------- Home: the climb ---------- */
@@ -84,6 +87,7 @@
     const s = state(), R = D.realms, base = R.rules.base;
     return `<section class="home climb">
       <header class="hero">
+        <button class="acct" type="button" data-go="profile">${store.user ? esc(store.displayName()) : store.mode === 'supabase' ? 'Đăng nhập' : 'Hồ sơ'}<span>${store.user ? esc(s.level.name) : ''}</span></button>
         <div class="brandline"><span class="eyebrow">Chân Kinh Lộ</span><span class="rule"></span><span class="glyph" aria-hidden="true">${s.stage.g}</span><span class="eyebrow">Tầng núi ${['I', 'II', 'III', 'IV'][s.stage.n - 1]} · ${esc(s.stage.level)}</span></div>
         <span class="eyebrow now">${esc(s.stage.name)} · Cảnh giới ${s.idx + 1}/${R.levels.length}</span>
         <h1 class="rank">${esc(s.level.name)}</h1>
@@ -100,7 +104,7 @@
       <div class="home-tree mtwrap"><svg id="mountain" viewBox="-30 0 460 600" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Núi tu luyện: 14 cảnh giới trên 4 tầng núi"></svg><p class="mt-cap" aria-live="polite"></p></div>
       <button class="libline" type="button" data-go="library"><span class="eyebrow">Tàng Kinh Các · đang mở ${esc(s.stage.unlock)}</span><span>${openLessons().length}/${Object.keys(D.lessons).length} bài EA trong Brain · ${D.topics.filter(topicOpen).length}/${D.topics.length} chủ đề củng cố, mở rộng</span><span class="go">Mở</span></button>
       <button class="libline duelline" type="button" data-go="duel"><span class="eyebrow">Song đấu</span><span>Mời người khác cùng đánh một thí luyện, so điểm phân thắng thua</span><span class="go">Mở</span></button>
-      <footer class="foot">${soundLine()}${saveLine()}<p class="note">${esc(R.rules.decayNote)} Lặp lại cùng một thí luyện trong ngày cho ít EXP hơn.</p></footer>
+      <footer class="foot">${soundLine()}${store.mode === 'supabase' && !store.user ? saveLine() : ''}<p class="note">${esc(R.rules.decayNote)} Lặp lại cùng một thí luyện trong ngày cho ít EXP hơn.</p></footer>
     </section>`;
   }
   function gateCard(s) {
@@ -219,7 +223,9 @@
     const T = test, it = T.items[T.i]; if (T.pick !== null) return; clearTimeout(timer); T.pick = k; const right = k >= 0 && it.opts[k] === it.right;
     sfx('answer', { i: T.i, n: T.items.length, ok: right });
     const b = k >= 0 ? document.querySelector(`[data-opt="${k}"]`) : null;
-    if (right) { T.ok++; if (b) { const r = b.getBoundingClientRect(); fx.burst(r.left + r.width / 2, r.top + r.height / 2, 28, 170, 0.8, 2); fx.ring(r.left + r.width / 2, r.top + r.height / 2, 110, 0.6); } } else T.wrong.push({ q: it.q, a: it.right });
+    const ms = Date.now() - (T.shownAt || Date.now()), chose = k >= 0 ? it.opts[k] : '(hết giờ)';
+    (T.log = T.log || []).push({ q: it.q, a: it.right, chose, ok: right, ms });
+    if (right) { T.ok++; if (b) { const r = b.getBoundingClientRect(); fx.burst(r.left + r.width / 2, r.top + r.height / 2, 28, 170, 0.8, 2); fx.ring(r.left + r.width / 2, r.top + r.height / 2, 110, 0.6); } } else T.wrong.push({ q: it.q, a: it.right, chose, ms });
     render(); if (!right) { const o = $('#opts'); o && o.classList.add('shake'); }
   }
   function armTimer() {
@@ -251,8 +257,9 @@
   async function finish() {
     const T = test, score = Math.round((T.ok / T.items.length) * 100);
     if (T.boss) return bossPartDone(score);
-    if (T.duel) return duelDone(score, { correct: T.ok, total: T.items.length });
-    res = await settle({ kind: T.kind, ref: T.id, mode: T.mode, difficulty: T.difficulty, topic: T.topic, score, correct: T.ok, total: T.items.length, wrong: T.wrong }, T.verse, T.kind === 'lesson' ? { v: 'lesson', id: T.id } : T.kind === 'rootlet' ? { v: 'rootlet', t: T.id } : { v: 'home' });
+    const log = T.log || [], avg_ms = log.length ? Math.round(log.reduce((a, x) => a + x.ms, 0) / log.length) : null;
+    if (T.duel) return duelDone(score, { correct: T.ok, total: T.items.length, log, avg_ms });
+    res = await settle({ kind: T.kind, ref: T.id, mode: T.mode, difficulty: T.difficulty, topic: T.topic, score, correct: T.ok, total: T.items.length, wrong: T.wrong, detail: { log, avg_ms } }, T.verse, T.kind === 'lesson' ? { v: 'lesson', id: T.id } : T.kind === 'rootlet' ? { v: 'rootlet', t: T.id } : { v: 'home' });
     res.title = T.title; res.again = T.kind === 'lesson' ? () => startTest(T.id) : T.kind === 'rootlet' ? () => startSelf(T.id) : () => startMix(T.topic);
     showResult();
   }
@@ -404,7 +411,7 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
   function recallScore(score, j) {
     const r = rc; r.items.forEach((x, k) => { if ((j && j.diem ? j.diem[k] : x.self) < 2) (r.wrong = r.wrong || []).push({ q: x.q, a: x.a }); });
     if (r.boss) return bossPartDone(score);
-    if (r.duel) return duelDone(score, { judge: j });
+    if (r.duel) return duelDone(score, { judge: j, log: r.items.map((x, k) => ({ q: x.q, a: x.a, chose: x.ans || '(bỏ trống)', ok: (j && j.diem ? j.diem[k] : x.self) >= 2 })) });
   }
 
   /* ---------- Vượt ải: the boss that guards each mountain tier ---------- */
@@ -530,9 +537,70 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
   async function duelDone(score, extra) {
     const r = duel.room, kind = { basic: 'mix', rootlet: 'rootlet', mix: 'mix', debate: 'debate' }[r.mode], d = { basic: 1, rootlet: 2, mix: 3, debate: 4 }[r.mode];
     await settle({ kind, ref: 'duel-' + r.code, mode: 'duel', difficulty: d, score, correct: extra.correct || 0, total: extra.total || 0, wrong: [], detail: { duel: r.code, judge: extra.judge || null } }, null, null);
-    try { duel.room = await rpc('submit_duel', { p_code: r.code, p_name: (store.user.email || 'Đạo hữu').split('@')[0], p_score: score, p_detail: extra.judge ? { judge: extra.judge } : {} }); } catch (e) { duel.err = e.message; }
+    try { duel.room = await rpc('submit_duel', { p_code: r.code, p_name: store.displayName(), p_score: score, p_detail: { correct: extra.correct ?? null, total: extra.total ?? null, avg_ms: extra.avg_ms ?? null, log: extra.log || [], judge: extra.judge || null } }); } catch (e) { duel.err = e.message; }
     duel.phase = 'room'; go({ v: 'duel' });
     const meWin = duel.room.entries.length > 1 && duel.room.entries[0].me; setTimeout(() => fx.moment(meWin ? 'pass' : score >= PASS ? 'pass' : 'fail', null, null), 250);
+  }
+
+  /* ---------- Hồ sơ: account, Phong Thần Chiến, lịch sử rèn luyện ---------- */
+  function loadProfileData() {
+    if (prof.weak === undefined) { prof.weak = null; store.weakest().then(w => { prof.weak = w; if (route.v === 'profile') render(); }).catch(() => { prof.weak = []; }); }
+    if (prof.hist === undefined && store.mode === 'supabase' && store.user) { prof.hist = null; rpc('my_duel_history', { p_limit: 30 }).then(h => { prof.hist = h || []; if (route.v === 'profile') render(); }).catch(() => { prof.hist = []; }); }
+  }
+  const secs = ms => ms == null ? '—' : (ms / 1000).toFixed(1).replace('.', ',') + ' giây';
+  const SLOW = 15000;
+  const OUT = { win: 'Thắng', draw: 'Hoà', loss: 'Thua', pending: 'Chờ đối thủ' };
+  /* Why a duel was won or lost, in one or two plain sentences. */
+  function duelReason(h) {
+    const me = h.me, d = me.detail || {}, o = (h.others || [])[0], log = d.log || [];
+    const wrong = log.filter(x => !x.ok).length, slow = log.filter(x => x.ms > SLOW).length;
+    if (!o) return 'Chưa có đối thủ nộp bài.';
+    const diff = me.score - o.score, parts = [];
+    if (d.correct != null && o.correct != null) { const c = d.correct - o.correct; if (c) parts.push(`${c > 0 ? 'đúng hơn' : 'kém'} ${Math.abs(c)} câu`); }
+    if (d.avg_ms && o.avg_ms) { const t = (d.avg_ms - o.avg_ms) / 1000; if (Math.abs(t) >= 1) parts.push(`${t > 0 ? 'chậm hơn' : 'nhanh hơn'} ${Math.abs(t).toFixed(1).replace('.', ',')} giây mỗi câu`); }
+    if (d.judge && d.judge.thieu && d.judge.thieu.length && diff < 0) parts.push('giám khảo chỉ ra: ' + d.judge.thieu[0]);
+    const head = diff > 0 ? `Thắng ${esc(o.name)} ${diff} điểm` : diff < 0 ? `Thua ${esc(o.name)} ${-diff} điểm` : `Hoà với ${esc(o.name)}`;
+    return head + (parts.length ? ': ' + esc(parts.join(', ')) : '') + '.' + (wrong ? ` Sai ${wrong} câu` : '') + (slow ? `${wrong ? ',' : ' Có'} ${slow} câu chậm quá 15 giây` : '') + (wrong || slow ? '.' : '');
+  }
+  function qList(items, showMs) {
+    return items.length ? `<div class="miss">${items.map(x => `<div><b>${esc(x.q)}</b>${x.chose !== undefined && !x.ok ? `Bạn: ${esc(x.chose)}<br>` : ''}Đáp án: ${esc(x.a)}${showMs && x.ms != null ? ` <em class="ms">${secs(x.ms)}</em>` : ''}</div>`).join('')}</div>` : '';
+  }
+  function trialTitle(e) {
+    if (e.kind === 'lesson' && D.lessons[e.ref]) return 'Căn bản · EA ' + eaNum(e.ref) + ' · ' + D.lessons[e.ref].title;
+    if (e.kind === 'rootlet') return 'Ôn rễ phụ · ' + e.ref;
+    if (e.kind === 'debate') { const t = D.topics.find(x => x.id === (e.topic || String(e.ref).split('-')[0])); return 'Luận chiến · ' + (t ? t.name : e.ref); }
+    if (e.kind === 'boss') return 'Vượt ải · ' + String(e.ref).replace('stage-', 'tầng núi ');
+    if (String(e.ref).startsWith('duel-')) return 'Song đấu · mã ' + String(e.ref).slice(5);
+    const t = D.topics.find(x => x.id === e.ref); return 'Hỗn chiến · ' + (t ? t.name : 'mọi bài đang mở');
+  }
+  function vProfile() {
+    const s = state(), online = store.mode === 'supabase' && store.user;
+    const head = `<button class="back" type="button" data-go="home">← Núi</button>`;
+    if (store.mode === 'supabase' && !store.user) return `<section class="view narrow">${head}<header class="lessonhead"><span class="eyebrow">Hồ sơ</span><h1>Đăng nhập</h1><p class="why">Nhập email, mở link trong thư trên cùng thiết bị. Tu vi, song đấu và AI sẽ gắn với tài khoản này.</p></header>${saveLine()}</section>`;
+    const weak = prof.weak, hist = prof.hist;
+    return `<section class="view narrow profile">${head}
+      <header class="lessonhead"><span class="eyebrow">Hồ sơ đạo hữu${online ? ' · ' + esc(store.user.email) : ''}</span>
+        ${online ? `<form class="namef" data-name><input id="pname" type="text" maxlength="40" value="${esc(store.displayName())}" aria-label="Tên hiển thị"><button type="submit" class="sound">Lưu tên</button></form>${prof.msg ? `<span class="meta">${esc(prof.msg)}</span>` : ''}` : `<h1>Bản xem trước</h1>`}
+        <div class="pstat"><span class="glyph" lang="zh-Hans">${s.level.zh}</span><div><b>${esc(s.level.name)}</b><small>Tầng núi ${ROMAN[s.stage.n - 1]} · ${esc(s.stage.name)} · ${fmt(s.exp)} EXP</small></div></div>
+        <div class="prog"><i style="width:${(s.frac * 100).toFixed(1)}%"></i></div>
+        ${online ? `<button class="btn ghost" type="button" data-signout>Đăng xuất</button>` : ''}</header>
+
+      <div class="sec"><span class="eyebrow">Bảng Phong Thần Chiến · lịch sử song đấu</span>
+        ${!online ? '<p class="note">Song đấu cần webapp và đăng nhập.</p>' : hist === null || hist === undefined ? '<p class="note">Đang tải…</p>' : !hist.length ? '<p class="note">Chưa có trận nào. Vào Song đấu ở trang Núi để mời người khác.</p>'
+          : `<ol class="fight">${hist.map(h => { const log = (h.me.detail || {}).log || [], wr = log.filter(x => !x.ok), sl = log.filter(x => x.ok && x.ms > SLOW), j = (h.me.detail || {}).judge;
+              return `<li class="${h.outcome}"><details><summary><span class="oc">${OUT[h.outcome] || h.outcome}</span><span class="t"><b>${esc(h.title)}</b><small>${new Date(h.at).toLocaleDateString('vi-VN')} · ${h.me.score}${h.others.length ? ' – ' + h.others.map(o => o.score).join(' – ') : ''}${h.points ? ' · +' + h.points + ' điểm tuần' : ''}</small></span></summary>
+                <p class="why">${duelReason(h)}</p>
+                ${wr.length ? `<span class="eyebrow">Câu sai · ${wr.length}</span>${qList(wr, true)}` : ''}
+                ${sl.length ? `<span class="eyebrow">Đúng nhưng chậm (trên 15 giây) · ${sl.length}</span>${qList(sl, true)}` : ''}
+                ${j ? `<span class="eyebrow">Giám khảo</span>${judgeBlock(j)}` : ''}</details></li>`; }).join('')}</ol>`}</div>
+
+      <div class="sec"><span class="eyebrow">Lịch sử rèn thí luyện · 10 lần điểm thấp nhất</span>
+        ${weak === null || weak === undefined ? '<p class="note">Đang tải…</p>' : !weak.length ? '<p class="note">Chưa có thí luyện nào.</p>'
+          : `<ol class="fight">${weak.map(e => { const wr = e.wrong || [], j = e.detail && e.detail.judge;
+              return `<li class="trial ${e.score >= PASS ? 'win' : 'low'}"><details><summary><span class="oc">${e.score}</span><span class="t"><b>${esc(trialTitle(e))}</b><small>${new Date(e.at).toLocaleDateString('vi-VN')}${e.total ? ' · ' + e.correct + '/' + e.total + ' câu đúng' : ''}</small></span></summary>
+                ${wr.length ? `<span class="eyebrow">Câu trả lời sai · ${wr.length}</span>${qList(wr.map(x => ({ ...x, ok: false })), true)}` : j ? '' : '<p class="note">Không lưu câu sai cho lần này.</p>'}
+                ${j ? judgeBlock(j) : ''}</details></li>`; }).join('')}</ol>`}</div>
+    </section>`;
   }
 
   /* ---------- events ---------- */
@@ -584,7 +652,8 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
     on('[data-drefresh]', () => duelOpen(duel.room.code));
     on('[data-dcopy]', b => { const u = duelUrl(duel.room.code); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => (b.textContent = 'Đã chép link'), () => (b.textContent = u)); });
     const dj = a.querySelector('[data-djoin]'); if (dj) dj.onsubmit = e => { e.preventDefault(); const c = ($('#dcode') || {}).value || ''; if (c.trim()) duelOpen(c.trim()); };
-    on('[data-signout]', () => store.signOut());
+    on('[data-signout]', async () => { await store.signOut(); prof = { hist: undefined, weak: undefined, msg: '' }; go({ v: 'home' }); });
+    const nf = a.querySelector('[data-name]'); if (nf) nf.onsubmit = async e => { e.preventDefault(); const r = await store.saveName(($('#pname') || {}).value); prof.msg = r.error ? 'Không lưu được: ' + r.error : 'Đã lưu tên.'; render(); };
     const f = a.querySelector('[data-signin]'); if (f) f.onsubmit = async e => { e.preventDefault(); const btn = f.querySelector('button'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'Đang gửi…'; const m = a.querySelector('[data-msg]'); const r = await store.signIn(a.querySelector('#email').value); btn.disabled = false; btn.textContent = 'Gửi lại'; m.textContent = r.error ? 'Không gửi được: ' + r.error : 'Đã gửi link đăng nhập. Mở email trên máy này để vào.'; };
   }
 

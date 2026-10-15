@@ -358,3 +358,36 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;f
 .weekme{display:flex;flex-direction:column;gap:8px;padding:14px 0;border-top:1px solid var(--line)}
 .weekme b{font-family:var(--f-display);font-weight:500;font-size:34px;line-height:1}
 .weekme span{font-size:13px;color:var(--soft)}
+
+/* ---------- Hồ sơ ---------- */
+.acct{display:flex;align-self:flex-end;margin-left:auto;align-items:baseline;gap:10px;background:none;border:0;border-bottom:1px solid var(--line-2);padding:2px 0 6px;margin-bottom:22px;color:var(--soft);font:inherit;font-size:13px;letter-spacing:.02em;cursor:pointer;max-width:100%}
+.acct span{font-size:11px;color:var(--mute);letter-spacing:.1em;text-transform:uppercase}
+.acct span:empty{display:none}
+.acct:hover{border-bottom-color:var(--soft)}
+.profile .namef{display:flex;gap:10px;align-items:center;margin:6px 0 2px}
+.profile .namef input{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid var(--line-2);padding:6px 0;font-size:clamp(24px,5vw,32px);font-weight:300;color:inherit;font-family:inherit}
+.profile .namef input:focus{outline:none;border-bottom-color:var(--soft)}
+.pstat{display:flex;gap:16px;align-items:center;margin:18px 0 10px}
+.pstat .glyph{font-size:34px;color:var(--soft);line-height:1}
+.pstat b{display:block;font-weight:400;font-size:18px}
+.pstat small{color:var(--mute);font-size:13px}
+.profile .btn.ghost{margin-top:18px}
+.profile .sec{margin-top:44px;display:flex;flex-direction:column;gap:14px}
+.fight{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.fight li{border-top:1px solid var(--line)}
+.fight li:last-child{border-bottom:1px solid var(--line)}
+.fight summary{list-style:none;display:flex;gap:16px;align-items:center;padding:14px 0;cursor:pointer}
+.fight summary::-webkit-details-marker{display:none}
+.fight .oc{flex:0 0 74px;font-size:12px;font-variant-numeric:tabular-nums;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.fight li.win .oc{color:var(--soft)}
+.fight li.loss .oc{color:var(--mute);text-decoration:line-through;text-decoration-thickness:1px}
+.fight .t{flex:1;min-width:0}
+.fight .t b{display:block;font-weight:400;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fight .t small{color:var(--mute);font-size:12.5px}
+.fight details[open] summary{padding-bottom:6px}
+.fight details > :not(summary){margin:10px 0 0}
+.fight details > :last-child{margin-bottom:18px}
+.fight .why{font-size:14.5px;line-height:1.6;color:var(--soft)}
+.miss .ms{font-style:normal;color:var(--mute);font-size:12px;margin-left:6px}
+@media (max-width:560px){.fight details > :not(summary){margin-left:0}.fight .oc{flex-basis:56px}}
+.fight li.trial .oc{flex-basis:52px;font-size:20px;letter-spacing:0;color:var(--soft);font-weight:300}

@@ -16,7 +16,7 @@
     for (const e of S.events) { const b = best[e.kind]; if (!b) continue; const x = b[e.ref] || { best: 0, attempts: 0 }; x.best = Math.max(x.best, e.score); x.attempts++; b[e.ref] = x; }
     S.best = best;
   }
-  const slim = e => ({ kind: e.kind, ref: e.ref, mode: e.mode, difficulty: e.difficulty, topic: e.topic, score: e.score, correct: e.correct, total: e.total, exp: e.exp, at: e.at });
+  const slim = e => ({ kind: e.kind, ref: e.ref, mode: e.mode, difficulty: e.difficulty, topic: e.topic, score: e.score, correct: e.correct, total: e.total, exp: e.exp, at: e.at, wrong: (e.wrong || []).slice(0, 15) });
   function readLocal() {
     try {
       const s = localStorage.getItem(LS); if (s) { S.events = JSON.parse(s); return; }
@@ -45,8 +45,9 @@
     } catch (e) {}
   }
   async function pull() {
-    if (!sb || !S.user) { S.onChange(); return; }
-    const { data, error } = await sb.from('attempts').select('kind,ref,mode,difficulty,topic,score,correct,total,exp,created_at').order('created_at').limit(10000);
+    if (!sb || !S.user) { S.profile = null; S.onChange(); return; }
+    const pr = await sb.from('profiles').select('name').eq('user_id', S.user.id).maybeSingle(); S.profile = pr.data || null;
+    const { data, error } = await sb.from('attempts').select('kind,ref,mode,difficulty,topic,score,correct,total,exp,wrong,created_at').order('created_at').limit(10000);
     if (!error && data) { S.events = data.map(r => ({ ...r, at: Date.parse(r.created_at) })); derive(); writeLocal(); }
     S.onChange();
   }
@@ -64,6 +65,18 @@
     return { error: error ? error.message : null };
   }
   async function signOut() { if (sb) await sb.auth.signOut(); }
+  const displayName = () => (S.profile && S.profile.name) || (S.user && S.user.email ? S.user.email.split('@')[0] : 'Đạo hữu');
+  async function saveName(name) {
+    name = String(name || '').trim().slice(0, 40); if (!name || !sb || !S.user) return { error: 'Cần đăng nhập.' };
+    const { error } = await sb.from('profiles').upsert({ user_id: S.user.id, name, updated_at: new Date().toISOString() });
+    if (!error) S.profile = { name }; return { error: error ? error.message : null };
+  }
+  /* The 10 weakest trials, with what went wrong. */
+  async function weakest() {
+    const kinds = ['lesson', 'rootlet', 'mix', 'debate', 'boss'];
+    if (sb && S.user) { const { data } = await sb.from('attempts').select('kind,ref,mode,score,correct,total,wrong,detail,created_at').in('kind', kinds).order('score').order('created_at', { ascending: false }).limit(10); return (data || []).map(r => ({ ...r, at: Date.parse(r.created_at) })); }
+    return S.events.filter(e => kinds.includes(e.kind)).sort((a, b) => a.score - b.score || b.at - a.at).slice(0, 10);
+  }
   async function token() { if (!sb) return null; const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : null; }
 
   /* Where the Linh khí music lives: the preview's own asset, a private Supabase bucket, or a local file. */
@@ -73,6 +86,6 @@
     try { const r = await fetch('assets/music/linh-khi.m4a', { method: 'HEAD' }); if (r.ok) return 'assets/music/linh-khi.m4a'; } catch (e) {}
     return null;
   }
-  Object.assign(S, { init, record, signIn, signOut, token, musicUrl, get sb() { return sb; }, get supabaseReady() { return !!sb; } });
+  Object.assign(S, { init, record, signIn, signOut, token, musicUrl, displayName, saveName, weakest, get sb() { return sb; }, get supabaseReady() { return !!sb; } });
   CKL.store = S;
 })();
