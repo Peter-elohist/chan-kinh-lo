@@ -61,7 +61,7 @@
   /* ---------- Home: the climb ---------- */
   function saveLine() {
     if (store.mode === 'supabase') return store.user ? `<div class="save">Đang lưu lên máy chủ · ${esc(store.user.email || '')} <button type="button" data-signout>Đăng xuất</button></div>`
-      : `<div class="save"><form data-signin><label for="email" style="position:absolute;left:-9999px">Email</label><input id="email" type="email" required placeholder="Email để nhận link đăng nhập"><button type="submit">Gửi link</button></form><span data-msg>Đăng nhập để lưu tu vi lên máy chủ và dùng AI.</span></div>`;
+      : `<div class="save"><form data-signin><label for="email" style="position:absolute;left:-9999px">Email</label><input id="email" type="email" required placeholder="Email để nhận link đăng nhập"><button type="submit">Gửi link</button></form><span data-msg>Đăng nhập để lưu tu vi lên máy chủ và dùng AI.</span><form data-paste class="paste" hidden><label for="plink" style="position:absolute;left:-9999px">Link đăng nhập</label><input id="plink" type="url" required placeholder="Dán link trong email (hoặc địa chỉ trang localhost)"><button type="submit">Vào</button></form></div>`;
     return `<div class="save">${store.mode === 'artifact' ? 'Tu vi được lưu trong bản xem trước này.' : 'Tu vi chỉ lưu trên trình duyệt này.'}</div>`;
   }
   function soundLine() {
@@ -654,7 +654,8 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
     const dj = a.querySelector('[data-djoin]'); if (dj) dj.onsubmit = e => { e.preventDefault(); const c = ($('#dcode') || {}).value || ''; if (c.trim()) duelOpen(c.trim()); };
     on('[data-signout]', async () => { await store.signOut(); prof = { hist: undefined, weak: undefined, msg: '' }; go({ v: 'home' }); });
     const nf = a.querySelector('[data-name]'); if (nf) nf.onsubmit = async e => { e.preventDefault(); const r = await store.saveName(($('#pname') || {}).value); prof.msg = r.error ? 'Không lưu được: ' + r.error : 'Đã lưu tên.'; render(); };
-    const f = a.querySelector('[data-signin]'); if (f) f.onsubmit = async e => { e.preventDefault(); const btn = f.querySelector('button'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'Đang gửi…'; const m = a.querySelector('[data-msg]'); const r = await store.signIn(a.querySelector('#email').value); btn.disabled = false; btn.textContent = 'Gửi lại'; m.textContent = r.error ? 'Không gửi được: ' + r.error : 'Đã gửi link đăng nhập. Mở email trên máy này để vào.'; };
+    const f = a.querySelector('[data-signin]'); if (f) f.onsubmit = async e => { e.preventDefault(); const btn = f.querySelector('button'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'Đang gửi…'; const m = a.querySelector('[data-msg]'); const r = await store.signIn(a.querySelector('#email').value); btn.disabled = false; btn.textContent = 'Gửi lại'; m.textContent = r.error ? 'Không gửi được: ' + r.error : 'Đã gửi link. Nếu link mở ra trang lỗi (localhost), giữ nhấn vào nút trong email, chọn Sao chép liên kết rồi dán vào ô dưới.'; const pf = a.querySelector('[data-paste]'); if (pf && !r.error) pf.hidden = false; };
+    const pf = a.querySelector('[data-paste]'); if (pf) pf.onsubmit = async e => { e.preventDefault(); const m = a.querySelector('[data-msg]'); m.textContent = 'Đang xác thực…'; const r = await store.signInWithLink(a.querySelector('#plink').value); m.textContent = r.error ? 'Không vào được: ' + r.error : 'Đã đăng nhập.'; if (!r.error) render(); };
   }
 
   render();

@@ -391,3 +391,5 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;f
 .miss .ms{font-style:normal;color:var(--mute);font-size:12px;margin-left:6px}
 @media (max-width:560px){.fight details > :not(summary){margin-left:0}.fight .oc{flex-basis:56px}}
 .fight li.trial .oc{flex-basis:52px;font-size:20px;letter-spacing:0;color:var(--soft);font-weight:300}
+.save form.paste{margin-top:4px}
+.save form[hidden]{display:none}

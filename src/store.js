@@ -64,6 +64,23 @@
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin } });
     return { error: error ? error.message : null };
   }
+  /* Sign in from a pasted link, for when the email link lands on the wrong site (Supabase Site URL not set):
+     · the email link itself  …/auth/v1/verify?token=…&type=magiclink
+     · the page it landed on  …#access_token=…&refresh_token=…   or   …?code=… */
+  async function signInWithLink(raw) {
+    if (!sb) return { error: 'Chưa cấu hình Supabase' };
+    let u; try { u = new URL(String(raw || '').trim()); } catch (e) { return { error: 'Không phải một đường link.' }; }
+    const h = new URLSearchParams(u.hash.replace(/^#/, '')), q = u.searchParams;
+    let res;
+    if (h.get('access_token') && h.get('refresh_token')) res = await sb.auth.setSession({ access_token: h.get('access_token'), refresh_token: h.get('refresh_token') });
+    else if (q.get('code')) res = await sb.auth.exchangeCodeForSession(q.get('code'));
+    else if (q.get('token')) { const t = q.get('type'); res = await sb.auth.verifyOtp({ token_hash: q.get('token'), type: ['signup', 'invite', 'recovery', 'email_change'].includes(t) ? t : 'magiclink' }); }
+    else if (h.get('error_description') || q.get('error_description')) return { error: h.get('error_description') || q.get('error_description') };
+    else return { error: 'Link không có mã đăng nhập.' };
+    if (res.error) return { error: res.error.message };
+    const { data } = await sb.auth.getSession(); S.user = data.session ? data.session.user : null; await pull();
+    return { error: S.user ? null : 'Chưa đăng nhập được.' };
+  }
   async function signOut() { if (sb) await sb.auth.signOut(); }
   const displayName = () => (S.profile && S.profile.name) || (S.user && S.user.email ? S.user.email.split('@')[0] : 'Đạo hữu');
   async function saveName(name) {
@@ -86,6 +103,6 @@
     try { const r = await fetch('assets/music/linh-khi.m4a', { method: 'HEAD' }); if (r.ok) return 'assets/music/linh-khi.m4a'; } catch (e) {}
     return null;
   }
-  Object.assign(S, { init, record, signIn, signOut, token, musicUrl, displayName, saveName, weakest, get sb() { return sb; }, get supabaseReady() { return !!sb; } });
+  Object.assign(S, { init, record, signIn, signInWithLink, signOut, token, musicUrl, displayName, saveName, weakest, get sb() { return sb; }, get supabaseReady() { return !!sb; } });
   CKL.store = S;
 })();
