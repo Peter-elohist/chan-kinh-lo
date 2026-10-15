@@ -50,6 +50,7 @@
       : v === 'boss' ? vBoss() : v === 'recall' ? vRecall() : v === 'duel' ? vDuel() : vResult();
     bind(); if (v === 'home') drawMountain(); if (v === 'test') armTimer();
     if (v === 'duel' && duel && duel.phase === 'menu' && duel.mine === undefined && store.mode === 'supabase' && store.user) { duel.mine = null; rpc('my_duels', {}).then(m => { duel.mine = m || []; if (route.v === 'duel') render(); }).catch(() => {}); }
+    if (v === 'duel' && duel && duel.phase === 'menu' && duel.week === undefined && store.mode === 'supabase' && store.user) { duel.week = null; rpc('duel_week_board', {}).then(w => { duel.week = w; if (route.v === 'duel') render(); }).catch(() => {}); }
   }
   store.onChange = () => { if (!['test', 'debate', 'daily', 'boss', 'recall', 'duel'].includes(route.v)) render(); };
   DESKTOP.addEventListener('change', () => { if (route.v === 'home') render(); });
@@ -499,8 +500,16 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
       <div class="sec"><span class="eyebrow">Chủ đề</span><div class="chips">${d.mode === 'mix' ? `<button type="button" class="chipbtn ${!d.topic ? 'on' : ''}" data-dtopic="">Mọi bài đang mở</button>` : ''}${tps.map(t => `<button type="button" class="chipbtn ${d.topic === t.id ? 'on' : ''}" data-dtopic="${t.id}">${esc(t.name)}</button>`).join('')}</div></div>
       <button class="btn" type="button" data-dcreate>Tạo trận</button>
       <div class="sec"><span class="eyebrow">Hoặc nhập mã trận</span><div class="save"><form data-djoin><input id="dcode" type="text" maxlength="6" placeholder="VD: 7F3K2A" style="text-transform:uppercase"><button type="submit">Vào</button></form></div></div>
+      ${weekBoard(d.week)}
       ${d.mine && d.mine.length ? `<div class="sec"><span class="eyebrow">Trận gần đây</span><div class="rootlets">${d.mine.map(m => `<button class="rl" type="button" data-dopen="${esc(m.code)}"><span>${esc(m.title)}</span><em>${esc(m.code)}</em></button>`).join('')}</div></div>` : ''}
       ${d.err ? `<p class="status warn">${esc(d.err)}</p>` : ''}</section>`;
+  }
+  function weekBoard(w) {
+    if (!w) return '';
+    const me = w.me, from = new Date(w.week), to = new Date(from.getTime() + 6 * 864e5), f = d => d.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' });
+    return `<div class="sec"><span class="eyebrow">Bảng song đấu tuần ${f(from)} – ${f(to)} · thắng 3, hoà 1, thua 0</span>
+      ${me ? `<div class="weekme"><b>${me.points}</b><span>điểm · hạng ${me.rank} · ${me.wins} thắng ${me.draws} hoà ${me.losses} thua · điểm trung bình ${me.avg ?? 0}</span>${me.titles && me.titles.length ? `<div class="chips">${me.titles.map(t => `<span class="chipbtn on">${esc(t)}</span>`).join('')}</div>` : ''}</div>` : '<p class="note">Tuần này bạn chưa có trận nào được tính điểm.</p>'}
+      ${w.board.length ? `<ol class="board">${w.board.map(r => `<li class="${r.me ? 'me' : ''} ${r.rank === 1 ? 'win' : ''}"><span>${r.rank}</span><b>${esc(r.name)}${r.me ? ' (bạn)' : ''}</b><em>${r.points}</em></li>`).join('')}</ol>` : ''}</div>`;
   }
   function duelSpec(mode, topicId) {
     const seed = (Math.random() * 2 ** 31) | 0, t = D.topics.find(x => x.id === topicId);
@@ -576,7 +585,7 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
     on('[data-dcopy]', b => { const u = duelUrl(duel.room.code); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => (b.textContent = 'Đã chép link'), () => (b.textContent = u)); });
     const dj = a.querySelector('[data-djoin]'); if (dj) dj.onsubmit = e => { e.preventDefault(); const c = ($('#dcode') || {}).value || ''; if (c.trim()) duelOpen(c.trim()); };
     on('[data-signout]', () => store.signOut());
-    const f = a.querySelector('[data-signin]'); if (f) f.onsubmit = async e => { e.preventDefault(); const m = a.querySelector('[data-msg]'); const r = await store.signIn(a.querySelector('#email').value); m.textContent = r.error ? 'Không gửi được: ' + r.error : 'Đã gửi link đăng nhập. Mở email trên máy này để vào.'; };
+    const f = a.querySelector('[data-signin]'); if (f) f.onsubmit = async e => { e.preventDefault(); const btn = f.querySelector('button'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'Đang gửi…'; const m = a.querySelector('[data-msg]'); const r = await store.signIn(a.querySelector('#email').value); btn.disabled = false; btn.textContent = 'Gửi lại'; m.textContent = r.error ? 'Không gửi được: ' + r.error : 'Đã gửi link đăng nhập. Mở email trên máy này để vào.'; };
   }
 
   render();
