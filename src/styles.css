@@ -391,5 +391,8 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;f
 .miss .ms{font-style:normal;color:var(--mute);font-size:12px;margin-left:6px}
 @media (max-width:560px){.fight details > :not(summary){margin-left:0}.fight .oc{flex-basis:56px}}
 .fight li.trial .oc{flex-basis:52px;font-size:20px;letter-spacing:0;color:var(--soft);font-weight:300}
-.save form.paste{margin-top:4px}
-.save form[hidden]{display:none}
+.save.login{flex-direction:column;align-items:stretch;gap:12px}
+.save .google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 16px;background:var(--paper);color:var(--ink);border:0;font-size:14px;letter-spacing:.04em;cursor:pointer}
+.save .google svg{width:17px;height:17px}
+.save .google:disabled{opacity:.6}
+.save .or{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);text-align:center}
