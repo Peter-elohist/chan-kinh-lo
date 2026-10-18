@@ -523,7 +523,7 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
     }
     const tps = D.topics.filter(topicOpen);
     return `<section class="view narrow">${head}
-      <p class="why">Tạo một trận, gửi link cho người kia. Cả hai làm cùng một bộ đề; ai điểm cao hơn thắng. Người được mời cần đăng nhập${'' /* AI */}; phần Luận chiến và Ghi nhớ cần email của họ trong ALLOWED_EMAILS.</p>
+      <p class="why">Tạo một trận, gửi link cho người kia. Cả hai làm cùng một bộ đề; ai điểm cao hơn thắng. Người được mời cần đăng nhập${'' /* AI */}; email của họ phải nằm trong danh sách cho phép (bảng allowed_emails).</p>
       <div class="sec"><span class="eyebrow">Loại thí luyện</span><div class="chips">${DMODES.map(m => `<button type="button" class="chipbtn ${d.mode === m[0] ? 'on' : ''}" data-dmode="${m[0]}">${DIFF[m[1]]} · ${m[2]}</button>`).join('')}</div></div>
       <div class="sec"><span class="eyebrow">Chủ đề</span><div class="chips">${d.mode === 'mix' ? `<button type="button" class="chipbtn ${!d.topic ? 'on' : ''}" data-dtopic="">Mọi bài đang mở</button>` : ''}${tps.map(t => `<button type="button" class="chipbtn ${d.topic === t.id ? 'on' : ''}" data-dtopic="${t.id}">${esc(t.name)}</button>`).join('')}</div></div>
       <button class="btn" type="button" data-dcreate>Tạo trận</button>
