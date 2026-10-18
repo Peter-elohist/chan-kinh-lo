@@ -1,0 +1,11 @@
+# Nội dung và công cụ không bao giờ được đưa lên web công khai.
+data/
+dist/
+scripts/
+supabase/
+assets/music/
+assets/refs/
+README.md
+CHANGELOG.md
+assets/README.md
+assets/sfx/README.md

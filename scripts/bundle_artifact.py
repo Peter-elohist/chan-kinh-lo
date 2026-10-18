@@ -29,7 +29,7 @@ safe = lambda s: s.replace("</script", "<\\/script")
 html = read("index.html")
 html = html.replace('<link rel="stylesheet" href="src/styles.css">', "<style>\n" + read("src/styles.css") + "\n</style>")
 html = re.sub(r'<script src="src/config.js"></script>\s*', "", html)
-html = re.sub(r'<script src="https://cdn.jsdelivr.net/npm/@supabase[^"]*"></script>\s*', "", html)
+html = re.sub(r'<script src="src/vendor/supabase.js"></script>\s*', "", html)
 data_js = "window.CKL_DATA=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
 import os
 if os.environ.get("CKL_MUSIC_URL"):  # the preview's private music asset

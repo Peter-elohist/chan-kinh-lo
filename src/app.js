@@ -8,13 +8,34 @@
   const PASS = 80, DIFF = ['', 'Sơ', 'Trung', 'Cao', 'Tuyệt'];
   const DESKTOP = matchMedia('(min-width: 960px)');
 
+  /* Nothing of the content ships with the site. It is fetched after sign-in, and only for allowlisted accounts. */
+  const GOOGLE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3zM12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22zM6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9.1L6.4 14zM12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5L6.4 10C7.2 7.8 9.4 6 12 6z"/></svg>';
+  function gate(kind) {
+    const a = $('#app');
+    const msg = kind === 'denied' ? 'Tài khoản <b>' + esc(store.user && store.user.email) + '</b> chưa được cấp quyền. Nhờ chủ app thêm email này vào danh sách cho phép.'
+      : kind === 'error' ? 'Không tải được dữ liệu. Kiểm tra mạng rồi tải lại trang.'
+      : kind === 'offline' ? 'Bản này cần máy chủ để mở dữ liệu.' : (store.authError || 'Ứng dụng riêng tư. Đăng nhập để vào núi.');
+    a.innerHTML = `<section class="view narrow gate"><header class="lessonhead"><span class="eyebrow">Chân Kinh Lộ</span><h1>Cổng núi</h1><p class="why">${msg}</p></header>
+      ${store.user ? `<div class="save login"><button type="button" class="btn ghost" data-out>Đăng xuất</button></div>`
+      : kind === 'offline' ? '' : `<div class="save login"><button type="button" class="google" data-g>${GOOGLE_SVG}Đăng nhập bằng Google</button><span class="or">hoặc nhận link qua email</span>
+        <form data-mail><label for="email" style="position:absolute;left:-9999px">Email</label><input id="email" type="email" required autocomplete="email" placeholder="Email của bạn"><button type="submit">Gửi link</button></form><span data-msg></span></div>`}</section>`;
+    const m = a.querySelector('[data-msg]'), g = a.querySelector('[data-g]'), f = a.querySelector('[data-mail]'), o = a.querySelector('[data-out]');
+    if (g) g.onclick = async () => { g.disabled = true; const r = await store.signInGoogle(); if (r.error) { g.disabled = false; m.textContent = 'Không đăng nhập được: ' + r.error; } };
+    if (f) f.onsubmit = async e => { e.preventDefault(); const b = f.querySelector('button'); b.disabled = true; const r = await store.signIn(f.querySelector('#email').value); b.disabled = false; m.textContent = r.error ? 'Không gửi được: ' + r.error : 'Đã gửi link. Mở email và bấm link trên chính trình duyệt này.'; };
+    if (o) o.onclick = async () => { await store.signOut(); location.reload(); };
+    store.onAuth = () => location.reload();
+  }
   async function load() {
     if (window.CKL_DATA) return window.CKL_DATA;
-    const j = p => fetch(p).then(r => r.json());
-    const [tiers, lessons, rootlets, questions, verses, topics, realms] = await Promise.all(['data/goc/tiers.json', 'data/goc/lessons.json', 'data/goc/rootlets.json', 'data/goc/questions.json', 'data/bible/keyverses.json', 'data/goc/topics.json', 'data/realms.json'].map(j));
-    return { tiers, lessons, rootlets, questions, verses, topics, realms };
+    await store.init();
+    if (store.mode !== 'supabase') { gate('offline'); return null; }
+    if (!store.user) { gate(); return null; }
+    if (!(await store.allowed())) { gate('denied'); return null; }
+    const d = await store.content(); if (!d) { gate('error'); return null; }
+    store.onAuth = e => { if (e === 'SIGNED_OUT') location.reload(); };
+    return d;
   }
-  const D = await load(); X.init(D.realms);
+  const D = await load(); if (!D) return; X.init(D.realms);
   fx.setPool(Object.values(D.verses).map(v => v.zh).join(''));
 
   /* ---------- derived ---------- */
@@ -652,7 +673,7 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
     on('[data-drefresh]', () => duelOpen(duel.room.code));
     on('[data-dcopy]', b => { const u = duelUrl(duel.room.code); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => (b.textContent = 'Đã chép link'), () => (b.textContent = u)); });
     const dj = a.querySelector('[data-djoin]'); if (dj) dj.onsubmit = e => { e.preventDefault(); const c = ($('#dcode') || {}).value || ''; if (c.trim()) duelOpen(c.trim()); };
-    on('[data-signout]', async () => { await store.signOut(); prof = { hist: undefined, weak: undefined, msg: '' }; go({ v: 'home' }); });
+    on('[data-signout]', async () => { await store.signOut(); location.reload(); });
     const nf = a.querySelector('[data-name]'); if (nf) nf.onsubmit = async e => { e.preventDefault(); const r = await store.saveName(($('#pname') || {}).value); prof.msg = r.error ? 'Không lưu được: ' + r.error : 'Đã lưu tên.'; render(); };
     const f = a.querySelector('[data-signin]'); if (f) f.onsubmit = async e => { e.preventDefault(); const btn = f.querySelector('button'); if (btn.disabled) return; btn.disabled = true; btn.textContent = 'Đang gửi…'; const m = a.querySelector('[data-msg]'); const r = await store.signIn(a.querySelector('#email').value); btn.disabled = false; btn.textContent = 'Gửi lại'; m.textContent = r.error ? 'Không gửi được: ' + r.error : 'Đã gửi link. Mở email và bấm link trên chính trình duyệt này (iPhone: giữ nhấn link → Mở trong Safari).'; };
     on('[data-google]', async b => { b.disabled = true; const r = await store.signInGoogle(); if (r.error) { b.disabled = false; const m = a.querySelector('[data-msg]'); if (m) m.textContent = 'Google chưa bật: ' + r.error; } });

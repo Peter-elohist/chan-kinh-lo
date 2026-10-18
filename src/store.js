@@ -28,14 +28,16 @@
   }
   function writeLocal() { try { localStorage.setItem(LS, JSON.stringify(S.events.map(slim))); } catch (e) {} }
 
-  async function init() {
+  let inited = null;
+  function init() { return inited || (inited = init0()); }
+  async function init0() {
     readLocal(); derive();
     if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) {
       sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
       { const h = new URLSearchParams(location.hash.slice(1)), q = new URLSearchParams(location.search), d = h.get('error_description') || q.get('error_description');
         if (d) { S.authError = /expired|invalid/i.test(d) ? 'Link đã dùng hoặc hết hạn. Gửi link mới.' : 'Đăng nhập lỗi: ' + d; history.replaceState(null, '', location.pathname); } }
       const { data } = await sb.auth.getSession(); S.user = data.session ? data.session.user : null; S.mode = 'supabase';
-      sb.auth.onAuthStateChange((_e, session) => { S.user = session ? session.user : null; pull(); });
+      sb.auth.onAuthStateChange((e, session) => { const had = !!S.user; S.user = session ? session.user : null; if (S.onAuth && (e === 'SIGNED_IN' && !had || e === 'SIGNED_OUT')) S.onAuth(e); pull(); });
       await pull(); return;
     }
     try {
@@ -74,7 +76,13 @@
     const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin } });
     return { error: error ? error.message : null };
   }
-  async function signOut() { if (sb) await sb.auth.signOut(); }
+  async function signOut() { if (sb) await sb.auth.signOut(); try { localStorage.removeItem(LS); localStorage.removeItem(OLD); } catch (e) {} S.events = []; }
+  /* Content (lessons, questions, verses…) lives in Supabase and is readable only by allowlisted accounts. */
+  async function allowed() { if (!sb || !S.user) return false; const { data, error } = await sb.rpc('is_allowed'); return !error && data === true; }
+  async function content() {
+    const { data, error } = await sb.from('content').select('key,body'); if (error || !data || !data.length) return null;
+    const o = {}; for (const r of data) o[r.key] = r.body; return o;
+  }
   const displayName = () => (S.profile && S.profile.name) || (S.user && S.user.email ? S.user.email.split('@')[0] : 'Đạo hữu');
   async function saveName(name) {
     name = String(name || '').trim().slice(0, 40); if (!name || !sb || !S.user) return { error: 'Cần đăng nhập.' };
@@ -96,6 +104,6 @@
     try { const r = await fetch('assets/music/linh-khi.m4a', { method: 'HEAD' }); if (r.ok) return 'assets/music/linh-khi.m4a'; } catch (e) {}
     return null;
   }
-  Object.assign(S, { init, record, signIn, signInGoogle, signOut, token, musicUrl, displayName, saveName, weakest, get sb() { return sb; }, get supabaseReady() { return !!sb; } });
+  Object.assign(S, { init, allowed, content, record, signIn, signInGoogle, signOut, token, musicUrl, displayName, saveName, weakest, get sb() { return sb; }, get supabaseReady() { return !!sb; } });
   CKL.store = S;
 })();
