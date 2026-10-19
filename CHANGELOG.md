@@ -1,5 +1,10 @@
 # Nhật ký phiên bản
 
+## v0.7.1 · 2026-10-19
+
+- Duyệt người mới: ai đăng nhập lần đầu mà chưa có trong danh sách cho phép sẽ tự gửi yêu cầu vào núi. Chủ app nhận email có nút Duyệt / Từ chối (link ký số, hạn 7 ngày, bấm xong app hỏi xác nhận lần nữa), hoặc duyệt ở trang `/#admin`. Duyệt một lần là vĩnh viễn; lần sau người đó vào thẳng. Có thể thu hồi bất cứ lúc nào.
+- Edge Function `access` gửi mail qua Resend (secret `RESEND_API_KEY`).
+
 ## v0.5.0 · 2026-10-14
 
 - Bình cảnh và vượt ải: mỗi tầng núi có trần EXP. Tới đỉnh tầng thì EXP dừng lại cho tới khi đánh thắng ải: 2 giờ, đủ 4 phần (20 câu trắc nghiệm, 10 câu ghi nhớ tự viết do AI chấm, 15 câu hỗn chiến 20 giây, 1 trận luận chiến), kiến thức gộp từ tầng 1 tới tầng hiện tại. Thắng khi tổng từ 80 và mỗi phần từ 60: +150 EXP, lên tầng núi mới. Thua: ải hồi phục 24 giờ. Đang đánh dở thì tải lại trang vẫn tiếp tục.

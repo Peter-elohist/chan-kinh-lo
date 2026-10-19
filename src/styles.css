@@ -396,3 +396,7 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;f
 .save .google svg{width:17px;height:17px}
 .save .google:disabled{opacity:.6}
 .save .or{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);text-align:center}
+/* admin */
+.adm{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;padding:10px 0}
+.adm .t{display:flex;flex-direction:column;min-width:0}.adm .t small{opacity:.7;overflow-wrap:anywhere}
+.adm .acts{display:flex;gap:8px;align-items:center}

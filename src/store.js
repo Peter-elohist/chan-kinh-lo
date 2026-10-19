@@ -95,6 +95,12 @@
     if (sb && S.user) { const { data } = await sb.from('attempts').select('kind,ref,mode,score,correct,total,wrong,detail,created_at').in('kind', kinds).order('score').order('created_at', { ascending: false }).limit(10); return (data || []).map(r => ({ ...r, at: Date.parse(r.created_at) })); }
     return S.events.filter(e => kinds.includes(e.kind)).sort((a, b) => a.score - b.score || b.at - a.at).slice(0, 10);
   }
+  /* Edge Function "access": ask to enter (signed-in stranger) or approve/deny with the token from the owner's email. */
+  async function access(body) {
+    const tok = (await token()) || cfg.supabaseAnonKey;
+    try { const r = await fetch(cfg.supabaseUrl + '/functions/v1/access', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + tok, apikey: cfg.supabaseAnonKey }, body: JSON.stringify(body) }); return await r.json(); }
+    catch (e) { return { error: 'net', message: 'Không kết nối được máy chủ.' }; }
+  }
   async function token() { if (!sb) return null; const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : null; }
 
   /* Where the Linh khí music lives: the preview's own asset, a private Supabase bucket, or a local file. */
@@ -104,6 +110,6 @@
     try { const r = await fetch('assets/music/linh-khi.m4a', { method: 'HEAD' }); if (r.ok) return 'assets/music/linh-khi.m4a'; } catch (e) {}
     return null;
   }
-  Object.assign(S, { init, allowed, content, record, signIn, signInGoogle, signOut, token, musicUrl, displayName, saveName, weakest, get sb() { return sb; }, get supabaseReady() { return !!sb; } });
+  Object.assign(S, { init, allowed, content, access, record, signIn, signInGoogle, signOut, token, musicUrl, displayName, saveName, weakest, get sb() { return sb; }, get supabaseReady() { return !!sb; } });
   CKL.store = S;
 })();

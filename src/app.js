@@ -12,7 +12,9 @@
   const GOOGLE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3zM12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22zM6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9.1L6.4 14zM12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5L6.4 10C7.2 7.8 9.4 6 12 6z"/></svg>';
   function gate(kind) {
     const a = $('#app');
-    const msg = kind === 'denied' ? 'Tài khoản <b>' + esc(store.user && store.user.email) + '</b> chưa được cấp quyền. Nhờ chủ app thêm email này vào danh sách cho phép.'
+    const msg = kind === 'denied' ? 'Tài khoản <b>' + esc(store.user && store.user.email) + '</b> đang chờ duyệt…'
+      : kind === 'pending' ? 'Đã gửi yêu cầu vào núi cho chủ app. Khi được duyệt, tải lại trang là vào được; từ đó về sau đăng nhập sẽ vào thẳng, không phải chờ nữa.'
+      : kind === 'refused' ? 'Yêu cầu vào núi của <b>' + esc(store.user && store.user.email) + '</b> chưa được chấp nhận.'
       : kind === 'error' ? 'Không tải được dữ liệu. Kiểm tra mạng rồi tải lại trang.'
       : kind === 'offline' ? 'Bản này cần máy chủ để mở dữ liệu.' : (store.authError || 'Ứng dụng riêng tư. Đăng nhập để vào núi.');
     a.innerHTML = `<section class="view narrow gate"><header class="lessonhead"><span class="eyebrow">Chân Kinh Lộ</span><h1>Cổng núi</h1><p class="why">${msg}</p></header>
@@ -30,11 +32,31 @@
     await store.init();
     if (store.mode !== 'supabase') { gate('offline'); return null; }
     if (!store.user) { gate(); return null; }
-    if (!(await store.allowed())) { gate('denied'); return null; }
+    if (!(await store.allowed())) {
+      gate('denied'); const r = await store.access({ action: 'request' });
+      if (r.status === 'approved') { location.reload(); return null; }
+      gate(r.status === 'denied' ? 'refused' : r.status === 'pending' ? 'pending' : 'error'); return null;
+    }
     const d = await store.content(); if (!d) { gate('error'); return null; }
     store.onAuth = e => { if (e === 'SIGNED_OUT') location.reload(); };
     return d;
   }
+  /* Link from the owner's email: #duyet=<signed token>&a=approve|deny. Asks once more, then decides. */
+  async function approvePage() {
+    const h = new URLSearchParams(location.hash.slice(1)), t = h.get('duyet'); if (!t) return false;
+    let act = h.get('a') === 'deny' ? 'deny' : 'approve', email = '';
+    try { email = JSON.parse(atob(t.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))).e; } catch (e) {}
+    const a = $('#app'), done = msg => { a.innerHTML = `<section class="view narrow gate"><header class="lessonhead"><span class="eyebrow">Duyệt người mới</span><h1>${esc(email || 'Không rõ email')}</h1><p class="why">${msg}</p></header><div class="save login"><a class="btn ghost" href="/#admin">Mở trang quản trị</a> <a class="btn ghost" href="/">Vào núi</a></div></section>`; };
+    const ask = () => { a.innerHTML = `<section class="view narrow gate"><header class="lessonhead"><span class="eyebrow">Duyệt người mới</span><h1>${esc(email || 'Không rõ email')}</h1>
+        <p class="why">${act === 'approve' ? 'Cho người này vào núi? Duyệt một lần là xong — những lần đăng nhập sau họ vào thẳng.' : 'Từ chối người này?'}</p></header>
+        <div class="save login"><button type="button" class="btn" data-yes>${act === 'approve' ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}</button> <button type="button" class="btn ghost" data-swap>${act === 'approve' ? 'Đổi ý: từ chối' : 'Đổi ý: duyệt'}</button><span data-msg></span></div></section>`;
+      a.querySelector('[data-swap]').onclick = () => { act = act === 'approve' ? 'deny' : 'approve'; ask(); };
+      a.querySelector('[data-yes]').onclick = async e => { e.target.disabled = true; await store.init(); const r = await store.access({ action: act, token: t });
+        history.replaceState(null, '', location.pathname);
+        done(r.ok ? (act === 'approve' ? 'Đã duyệt. Người này tải lại trang là vào được, và từ nay đăng nhập sẽ vào thẳng.' : 'Đã từ chối.') : esc(r.message || 'Không thực hiện được.')); }; };
+    ask(); return true;
+  }
+  if (await approvePage()) return;
   const D = await load(); if (!D) return; X.init(D.realms);
   fx.setPool(Object.values(D.verses).map(v => v.zh).join(''));
 
@@ -68,10 +90,11 @@
     const a = $('#app'), v = route.v;
     a.innerHTML = v === 'home' ? vHome() : v === 'library' ? vLibrary() : v === 'tier' ? vTier(route.n) : v === 'lesson' ? vLesson(route.id) : v === 'topic' ? vTopic(route.t) : v === 'rootlet' ? vRootlet(route.t)
       : v === 'pick' ? vPick(route.mode) : v === 'test' ? vTest() : v === 'debate' ? vDebate() : v === 'daily' ? vDaily()
-      : v === 'boss' ? vBoss() : v === 'recall' ? vRecall() : v === 'duel' ? vDuel() : v === 'profile' ? vProfile() : vResult();
+      : v === 'boss' ? vBoss() : v === 'recall' ? vRecall() : v === 'duel' ? vDuel() : v === 'profile' ? vProfile() : v === 'admin' ? vAdmin() : vResult();
     if (v === 'test' && test && test.pick === null && test.shownI !== test.i) { test.shownI = test.i; test.shownAt = Date.now(); }
     bind(); if (v === 'home') drawMountain(); if (v === 'test') armTimer();
     if (v === 'profile') loadProfileData();
+    if (v === 'admin' && adm.data === undefined) loadAdmin();
     if (v === 'duel' && duel && duel.phase === 'menu' && duel.mine === undefined && store.mode === 'supabase' && store.user) { duel.mine = null; rpc('my_duels', {}).then(m => { duel.mine = m || []; if (route.v === 'duel') render(); }).catch(() => {}); }
     if (v === 'duel' && duel && duel.phase === 'menu' && duel.week === undefined && store.mode === 'supabase' && store.user) { duel.week = null; rpc('duel_week_board', {}).then(w => { duel.week = w; if (route.v === 'duel') render(); }).catch(() => {}); }
   }
@@ -604,7 +627,7 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
         ${online ? `<form class="namef" data-name><input id="pname" type="text" maxlength="40" value="${esc(store.displayName())}" aria-label="Tên hiển thị"><button type="submit" class="sound">Lưu tên</button></form>${prof.msg ? `<span class="meta">${esc(prof.msg)}</span>` : ''}` : `<h1>Bản xem trước</h1>`}
         <div class="pstat"><span class="glyph" lang="zh-Hans">${s.level.zh}</span><div><b>${esc(s.level.name)}</b><small>Tầng núi ${ROMAN[s.stage.n - 1]} · ${esc(s.stage.name)} · ${fmt(s.exp)} EXP</small></div></div>
         <div class="prog"><i style="width:${(s.frac * 100).toFixed(1)}%"></i></div>
-        ${online ? `<button class="btn ghost" type="button" data-signout>Đăng xuất</button>` : ''}</header>
+        ${online ? `<button class="btn ghost" type="button" data-signout>Đăng xuất</button>` : ''}${isAdmin ? ` <button class="btn ghost" type="button" data-go="admin">Duyệt người mới</button>` : ''}</header>
 
       <div class="sec"><span class="eyebrow">Bảng Phong Thần Chiến · lịch sử song đấu</span>
         ${!online ? '<p class="note">Song đấu cần webapp và đăng nhập.</p>' : hist === null || hist === undefined ? '<p class="note">Đang tải…</p>' : !hist.length ? '<p class="note">Chưa có trận nào. Vào Song đấu ở trang Núi để mời người khác.</p>'
@@ -624,11 +647,41 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
     </section>`;
   }
 
+
+  /* ---------- admin: approve new sign-ups (owner only; the database checks is_admin) ---------- */
+  let adm = { data: undefined, msg: '' }, isAdmin = false;
+  if (store.mode === 'supabase' && store.user) store.sb.rpc('is_admin').then(r => { isAdmin = r.data === true; if (isAdmin && route.v === 'profile') render(); });
+  function loadAdmin() {
+    adm.data = null;
+    store.sb.rpc('admin_overview').then(({ data, error }) => { adm.data = error ? { error: error.message } : data; if (route.v === 'admin') render(); });
+  }
+  async function decide(email, ok) {
+    adm.msg = 'Đang lưu…'; render();
+    const { error } = await store.sb.rpc('decide_access', { p_email: email, p_approve: ok });
+    adm.msg = error ? 'Lỗi: ' + error.message : (ok ? 'Đã duyệt ' : 'Đã chặn ') + email; loadAdmin();
+  }
+  function vAdmin() {
+    const head = `<button class="back" type="button" data-go="profile">← Hồ sơ</button><header class="lessonhead"><span class="eyebrow">Quản trị</span><h1>Duyệt người vào núi</h1><p class="why">Người mới đăng nhập lần đầu sẽ hiện ở đây và được báo qua email. Duyệt một lần là xong; lần sau họ vào thẳng.</p>${adm.msg ? `<span class="meta">${esc(adm.msg)}</span>` : ''}</header>`;
+    const d = adm.data;
+    if (d === null || d === undefined) return `<section class="view narrow profile">${head}<p class="note">Đang tải…</p></section>`;
+    if (d.error) return `<section class="view narrow profile">${head}<p class="note">${/forbidden/.test(d.error) ? 'Chỉ chủ app mới mở được trang này.' : esc(d.error)}</p></section>`;
+    const day = x => new Date(x).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+    const pend = d.requests.filter(r => r.status === 'pending'), old = d.requests.filter(r => r.status !== 'pending');
+    const row = (r, btns) => `<li class="trial"><div class="adm"><span class="t"><b>${esc(r.name || r.email)}</b><small>${esc(r.email)} · ${day(r.created_at || r.added_at)}${r.note ? ' · ' + esc(r.note) : ''}</small></span><span class="acts">${btns}</span></div></li>`;
+    const B = (email, ok, label) => `<button type="button" class="btn${ok ? '' : ' ghost'}" data-decide="${esc(email)}" data-ok="${ok ? 1 : 0}">${label}</button>`;
+    return `<section class="view narrow profile">${head}
+      <div class="sec"><span class="eyebrow">Đang chờ duyệt · ${pend.length}</span>${pend.length ? `<ol class="fight">${pend.map(r => row(r, B(r.email, 1, 'Duyệt') + B(r.email, 0, 'Từ chối'))).join('')}</ol>` : '<p class="note">Không có ai đang chờ.</p>'}</div>
+      <div class="sec"><span class="eyebrow">Đã được vào · ${d.allowed.length}</span><ol class="fight">${d.allowed.map(a => row(a, a.admin ? '<small>chủ app</small>' : B(a.email, 0, 'Thu hồi'))).join('')}</ol></div>
+      ${old.filter(r => r.status === 'denied').length ? `<div class="sec"><span class="eyebrow">Đã từ chối</span><ol class="fight">${old.filter(r => r.status === 'denied').map(r => row(r, B(r.email, 1, 'Duyệt lại'))).join('')}</ol></div>` : ''}
+    </section>`;
+  }
+
   /* ---------- events ---------- */
   function bind() {
     const a = $('#app'), on = (sel, fn) => a.querySelectorAll(sel).forEach(b => (b.onclick = () => fn(b)));
     on('[data-go]', b => go(b.dataset.go === 'tier' ? { v: 'tier', n: +b.dataset.n } : { v: b.dataset.go }));
     on('[data-lesson]', b => { sfx('lesson'); go({ v: 'lesson', id: b.dataset.lesson }); });
+    on('[data-decide]', b => decide(b.dataset.decide, b.dataset.ok === '1'));
     on('[data-rootlet]', b => go({ v: 'rootlet', t: b.dataset.rootlet }));
     on('[data-topic-open]', b => go({ v: 'topic', t: b.dataset.topicOpen }));
     on('[data-pick]', b => { sfx('open', { n: 1 }); go({ v: 'pick', mode: b.dataset.pick }); });
@@ -685,6 +738,7 @@ Trả về DUY NHẤT JSON: {"diem":[số cho từng câu theo thứ tự],"nhan
     if (CKL.sfx && CKL.sfx.setMusic) CKL.sfx.setMusic(() => store.musicUrl());
     const code = new URLSearchParams(location.search).get('duel');
     if (code && store.mode === 'supabase' && store.user) duelOpen(code); else if (code) { duel = { phase: 'menu', mode: 'mix', topic: '', err: 'Đăng nhập rồi nhập mã ' + code + ' để vào trận.' }; }
+    else if (location.hash === '#admin') go({ v: 'admin' });
     else if (boss && !boss.done) go({ v: 'boss' }); else render();
   });
   if (document.fonts) document.fonts.ready.then(() => { if (route.v === 'home') render(); });
